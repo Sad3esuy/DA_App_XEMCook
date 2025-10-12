@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import '../theme/app_theme.dart';
-import '../services/firebase_auth_service.dart';
+import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'main_shell.dart';
@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = FirebaseAuthService();
+  final _authService = AuthService();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -34,7 +34,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.signInWithEmail(
+    // Test kết nối trước
+    print('Testing connection...');
+    final connectionOk = await _authService.testConnection();
+    print('Connection test result: $connectionOk');
+
+    // Debug login để xem response chi tiết
+    await _authService.debugLogin(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    final result = await _authService.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
@@ -43,10 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (!mounted) return;
 
-    if (result.success) {
+    if (result.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng nhập thành công!'),
           backgroundColor: AppTheme.successGreen,
         ),
       );
@@ -57,26 +68,26 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng nhập thất bại'),
           backgroundColor: AppTheme.errorRed,
         ),
       );
     }
   }
 
-  Future<void> _handleGoogleSignIn() async {
+  Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
-    
+
     final result = await _authService.signInWithGoogle();
-    
+
     setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    if (result.success) {
+    if (result.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng nhập Google thành công!'),
           backgroundColor: AppTheme.successGreen,
         ),
       );
@@ -87,12 +98,13 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng nhập Google thất bại'),
           backgroundColor: AppTheme.errorRed,
         ),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -224,47 +236,52 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 
-                // Hoặc đăng nhập với
+                // Divider
                 Row(
                   children: [
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    const Expanded(child: Divider()),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'Hoặc đăng nhập với',
+                        'hoặc',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textLight,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    const Expanded(child: Divider()),
                   ],
                 ),
+
+                const SizedBox(height: 16),
                 
-                const SizedBox(height: 24),
-                
-                // Nút đăng nhập với Google
+                // Nút đăng nhập Google
                 SizedBox(
                   height: 56,
                   child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _handleGoogleSignIn,
+                    onPressed: _isLoading ? null : _handleGoogleLogin,
                     icon: Image.asset(
                       'assets/images/g-logo.png',
-                      height: 24,
-                      width: 24,
+                      width: 20,
+                      height: 20,
                     ),
-                    label: const Text('Đăng nhập với Google'),
+                    label: const Text(
+                      'Đăng nhập với Google',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade300),
+                      side: BorderSide(color: Colors.grey[300]!),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
                 
                 // Đăng ký

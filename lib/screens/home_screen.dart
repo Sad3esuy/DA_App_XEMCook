@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../services/firebase_auth_service.dart';
+import '../services/auth_service.dart';
+import '../model/user.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,8 +12,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _authService = FirebaseAuthService();
-  UserData? _currentUser;
+  final _authService = AuthService();
+  User? _currentUser;
   bool _isLoading = true;
 
   @override
@@ -22,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    final user = await _authService.getCurrentUserData();
+    final user = await _authService.getUser();
     setState(() {
       _currentUser = user;
       _isLoading = false;
@@ -55,10 +56,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (confirm == true) {
-      await _authService.signOut();
+      await _authService.logout();
       if (!mounted) return;
       
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );

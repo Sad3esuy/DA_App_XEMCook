@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import '../theme/app_theme.dart';
-import '../services/firebase_auth_service.dart';
+import '../model/auth.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'verify_pin_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -14,7 +16,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _authService = FirebaseAuthService();
+  final _authService = AuthService();
   
   bool _isLoading = false;
   bool _emailSent = false;
@@ -30,7 +32,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.sendPasswordResetEmail(
+    final Auth result = await _authService.sendPasswordResetEmail(
       _emailController.text.trim(),
     );
 
@@ -38,22 +40,51 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (!mounted) return;
 
-    if (result.success) {
+    if (result.isSuccess) {
       setState(() => _emailSent = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đã gửi mã PIN về email'),
           backgroundColor: AppTheme.successGreen,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      // Điều hướng nhập PIN
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => VerifyPinScreen(email: _emailController.text.trim()),
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: AppTheme.errorRed,
-        ),
-      );
+      final message = (result.message ?? '').trim();
+      final isGoogleAccount = message.toLowerCase().contains('google');
+
+      if (isGoogleAccount) {
+        // Trường hợp email thuộc tài khoản đăng nhập Google: hiển thị hướng dẫn thay vì gửi PIN
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Tài khoản Google'),
+            content: const Text(
+              'Email này được đăng ký bằng Google nên không thể đặt lại mật khẩu bằng mã PIN. '
+              'Vui lòng đổi mật khẩu trực tiếp trong tài khoản Google của bạn.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Đã hiểu'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message.isNotEmpty ? message : 'Gửi email thất bại'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
     }
   }
 
@@ -95,7 +126,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // Tiêu đề
+                // Title
                 Text(
                   _emailSent ? 'Kiểm tra Email' : 'Quên mật khẩu',
                   style: Theme.of(context).textTheme.displayMedium,
@@ -113,7 +144,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 32),
                 
                 if (!_emailSent) ...[
-                  // Form nhập email
+                  // Email form
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -152,7 +183,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ),
                 ] else ...[
-                  // Thông báo đã gửi email
+                  // Email sent notice
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -189,7 +220,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   
                   const SizedBox(height: 24),
                   
-                  // Gửi lại email
+                  // Resend email
                   OutlinedButton.icon(
                     onPressed: _isLoading
                         ? null
@@ -209,7 +240,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   
                   const SizedBox(height: 16),
                   
-                  // Quay về đăng nhập
+                  // Back to login
                   SizedBox(
                     height: 56,
                     child: ElevatedButton(
@@ -226,7 +257,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // Quay lại đăng nhập (khi chưa gửi email)
+                // Back to login (when email not sent yet)
                 if (!_emailSent)
                   Center(
                     child: TextButton.icon(

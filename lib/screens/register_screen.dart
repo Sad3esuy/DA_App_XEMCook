@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
 import '../theme/app_theme.dart';
-import '../services/firebase_auth_service.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 
@@ -18,7 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = FirebaseAuthService();
+  final _authService = AuthService();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -49,27 +49,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final result = await _authService.registerWithEmail(
+    final result = await _authService.register(
       fullName: _fullNameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text,
     );
 
     setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    if (result.success) {
+    if (result.isSuccess) {
       // Sau khi đăng ký thành công: đăng xuất để yêu cầu đăng nhập lại
-      await _authService.signOut();
+      await _authService.logout();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng ký thành công!'),
           backgroundColor: AppTheme.successGreen,
         ),
       );
 
+      // Đăng nhập Google thì vào app luôn (không quay về Login)
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
@@ -77,27 +79,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng ký thất bại'),
           backgroundColor: AppTheme.errorRed,
         ),
       );
     }
   }
 
-  Future<void> _handleGoogleSignUp() async {
+  Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
-    
+
     final result = await _authService.signInWithGoogle();
-    
+
     setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    if (result.success) {
-      // Optional: hiển thị note thay vì chặn người dùng trước khi đăng ký
+    if (result.isSuccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${result.message}\nBạn đã đăng kí tài khoản XEMCook thành công!'),
+          content: Text(result.message ?? 'Đăng nhập Google thành công!'),
           backgroundColor: AppTheme.successGreen,
         ),
       );
@@ -109,12 +110,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.message),
+          content: Text(result.message ?? 'Đăng nhập Google thất bại'),
           backgroundColor: AppTheme.errorRed,
         ),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -330,41 +332,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         : const Text('Đăng ký'),
                   ),
                 ),
+
+                const SizedBox(height: 16),
                 
-                const SizedBox(height: 24),
-                
-                // Hoặc đăng ký với
+                // Divider
                 Row(
                   children: [
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    const Expanded(child: Divider()),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
-                        'Hoặc đăng ký với',
+                        'hoặc',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textLight,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    const Expanded(child: Divider()),
                   ],
                 ),
+
+                const SizedBox(height: 16),
                 
-                const SizedBox(height: 24),
-                
-                // Nút đăng ký với Google
+                // Nút đăng nhập Google
                 SizedBox(
                   height: 56,
                   child: OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _handleGoogleSignUp,
+                    onPressed: _isLoading ? null : _handleGoogleLogin,
                     icon: Image.asset(
                       'assets/images/g-logo.png',
-                      height: 24,
-                      width: 24,
+                      width: 20,
+                      height: 20,
                     ),
-                    label: const Text('Đăng ký với Google'),
+                    label: const Text(
+                      'Đăng nhập với Google',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade300),
+                      side: BorderSide(color: Colors.grey[300]!),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

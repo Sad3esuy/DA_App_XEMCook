@@ -1,29 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'theme/app_theme.dart';
-import 'services/firebase_auth_service.dart';
+import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Khởi tạo Firebase
-  await Firebase.initializeApp();
-
-  // Web: dùng popup và session persistence để tránh lỗi missing initial state
-  if (kIsWeb) {
-    try {
-      await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-      await FirebaseAuth.instance.getRedirectResult();
-    } catch (_) {}
-  }
 
   // Cấu hình status bar
   SystemChrome.setSystemUIOverlayStyle(
@@ -125,13 +110,13 @@ class _SplashScreenState extends State<SplashScreen>
       );
     } else {
       // Không phải lần đầu -> kiểm tra trạng thái đăng nhập
-      final authService = FirebaseAuthService();
-      final user = authService.currentUser;
+      final authService = AuthService();
+      final isLoggedIn = await authService.isLoggedIn();
 
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) {
-            return user != null ? const MainShell() : const LoginScreen();
+            return isLoggedIn ? const MainShell() : const LoginScreen();
           },
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);

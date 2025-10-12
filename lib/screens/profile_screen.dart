@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../services/firebase_auth_service.dart';
+import '../services/auth_service.dart';
+import '../model/user.dart';
 import 'login_screen.dart';
 import 'package:image_picker/image_picker.dart';
 // Note: avoid extra dependency for grapheme clusters
@@ -16,8 +16,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
-  final _authService = FirebaseAuthService();
-  UserData? _user;
+  final _authService = AuthService();
+  User? _user;
   bool _loading = true;
   bool _uploading = false;
   late AnimationController _animController;
@@ -44,12 +44,33 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _load() async {
-    final user = await _authService.getCurrentUserData();
-    if (!mounted) return;
-    setState(() {
-      _user = user;
-      _loading = false;
-    });
+    // Show loading while fetching fresh data
+    if (mounted) {
+      setState(() {
+        _loading = true;
+      });
+    }
+
+    // Always try server first to get the latest profile
+    try {
+      final me = await _authService.getMe();
+      if (mounted) {
+        setState(() {
+          _user = me.user ?? _user;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      // Fallback to locally cached user
+      final user = await _authService.getUser();
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _loading = false;
+        });
+      }
+    }
+
     _animController.forward();
   }
 
@@ -103,9 +124,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
     if (confirm == true) {
-      await _authService.signOut();
+      await _authService.logout();
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
@@ -193,27 +214,27 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(res.message),
+        content: Text(res.message ?? 'Cập nhật thành công'),
         backgroundColor:
-            res.success ? AppTheme.successGreen : AppTheme.errorRed,
+            res.isSuccess ? AppTheme.successGreen : AppTheme.errorRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
-    if (res.success) {
+    if (res.isSuccess) {
       await _load();
     }
   }
 
   Future<void> _changePassword() async {
     // Cháº·n Ä‘á»•i máº­t kháº©u náº¿u lÃ  user Google
-    if (_authService.isGoogleUser()) {
+    if (_user?.authProvider == 'google') {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Mật khẩu của tài khoản Google cần được thay đổi trong hệ thống Google, không thể thực hiện trong ứng dụng này.'),
+        const SnackBar(
+          content: Text('Tài khoản Google không thể đổi mật khẩu. Vui lòng đổi mật khẩu trên Google.'),
           backgroundColor: AppTheme.errorRed,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
         ),
       );
       return;
@@ -382,13 +403,14 @@ class _ProfileScreenState extends State<ProfileScreen>
     final res = await _authService.changePassword(
       currentPassword: currentController.text,
       newPassword: newController.text,
+      confirmPassword: confirmController.text,
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(res.message),
+        content: Text(res.message ?? 'Thành công'),
         backgroundColor:
-            res.success ? AppTheme.successGreen : AppTheme.errorRed,
+            res.isSuccess ? AppTheme.successGreen : AppTheme.errorRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -396,8 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
 Future<void> _deleteAccount() async {
-  final user = FirebaseAuth.instance.currentUser;
-  final isGoogleUser = user?.providerData.any((p) => p.providerId == 'google.com') ?? false;
+  final isGoogleUser = _user?.authProvider == 'google';
 
   final passwordController = TextEditingController();
   bool obscure = true;
@@ -477,9 +498,28 @@ Future<void> _deleteAccount() async {
                   ),
                 ),
               ] else ...[
-                Text(
-                  'Bạn đang đăng nhập bằng Google. Ứng dụng sẽ yêu cầu xác thực Google lại để xoá tài khoản.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tài khoản Google sẽ được xóa khỏi hệ thống. Bạn vẫn có thể đăng nhập lại bằng Google.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -520,19 +560,21 @@ Future<void> _deleteAccount() async {
   );
     if (confirm != true) return;
 
-    final res = await _authService.deleteAccount(isGoogleUser ? '' : passwordController.text);
+    final res = await _authService.deleteAccount(
+      password: isGoogleUser ? null : passwordController.text,
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(res.message),
+        content: Text(res.message ?? 'Thành công'),
         backgroundColor:
-            res.success ? AppTheme.successGreen : AppTheme.errorRed,
+            res.isSuccess ? AppTheme.successGreen : AppTheme.errorRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
-    if (res.success) {
-      Navigator.of(context).pushAndRemoveUntil(
+    if (res.isSuccess) {
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
@@ -547,23 +589,17 @@ Future<void> _deleteAccount() async {
       imageQuality: 85,
     );
     if (picked == null) return;
-    final bytes = await picked.readAsBytes();
     setState(() => _uploading = true);
-    final res = await _authService.uploadProfilePhoto(bytes);
-    if (!mounted) return;
+    // TODO: Implement photo upload functionality in AuthService
     setState(() => _uploading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(res.message),
-        backgroundColor:
-            res.success ? AppTheme.successGreen : AppTheme.errorRed,
+        content: Text('Tính năng upload ảnh chưa được triển khai'),
+        backgroundColor: AppTheme.errorRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
-    if (res.success) {
-      await _load();
-    }
   }
 
   @override
@@ -593,7 +629,7 @@ Future<void> _deleteAccount() async {
 
     final fullName = _user?.fullName ?? 'Người dùng';
     final email = _user?.email ?? '';
-    final photoURL = _user?.photoURL;
+    final photoURL = _user?.avatar;
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -743,6 +779,29 @@ Future<void> _deleteAccount() async {
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _user?.authProvider == 'google' 
+                                          ? Icons.login 
+                                          : Icons.person_outline,
+                                      size: 14, 
+                                      color: Colors.grey[600]
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _user?.authProvider == 'google' 
+                                          ? 'Đăng nhập bằng Google'
+                                          : 'Tài khoản local',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 12),
                                 // Quick stats (cÃ³ thá»ƒ tÃ¹y chá»‰nh)
                                 Row(
@@ -782,14 +841,15 @@ Future<void> _deleteAccount() async {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
-                            child: MenuCard(
-                              icon: Icons.lock_outline_rounded,
-                              title: 'Đổi\nMật khẩu',
-                              color: const Color(0xFFEC4899),
-                              onTap: _changePassword,
+                          if (_user?.authProvider != 'google')
+                            Expanded(
+                              child: MenuCard(
+                                icon: Icons.lock_outline_rounded,
+                                title: 'Đổi\nMật khẩu',
+                                color: const Color(0xFFEC4899),
+                                onTap: _changePassword,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 12),

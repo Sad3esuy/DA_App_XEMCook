@@ -3,6 +3,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'recipes_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -14,13 +15,18 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _tabs = const [
+  // Tab roots
+  final List<Widget> _tabRoots = const [
     HomeScreen(),
-    _PlaceholderTab(title: 'Recipes'),
-    _PlaceholderTab(title: 'Add Recipe'),
+    RecipesScreen(),
+    _PlaceholderTab(title: 'Add'),
     _PlaceholderTab(title: 'Shop'),
     ProfileScreen(),
   ];
+
+  // Separate navigator for each tab so pushes keep bottom bar visible
+  late final List<GlobalKey<NavigatorState>> _navigatorKeys =
+      List.generate(_tabRoots.length, (_) => GlobalKey<NavigatorState>());
 
   final List<IconData> _icons = const [
     Icons.explore_rounded,
@@ -38,53 +44,90 @@ class _MainShellState extends State<MainShell> {
     'Tôi',
   ];
 
+  Future<bool> _onWillPop() async {
+    final currentNavigator = _navigatorKeys[_currentIndex].currentState;
+    if (currentNavigator != null && currentNavigator.canPop()) {
+      currentNavigator.pop();
+      return false;
+    }
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+      return false;
+    }
+    return true;
+  }
+
+  List<Widget> _buildTabNavigators() {
+    return List.generate(_tabRoots.length, (index) {
+      return Navigator(
+        key: _navigatorKeys[index],
+        onGenerateRoute: (RouteSettings settings) {
+          return MaterialPageRoute(
+            builder: (_) => _tabRoots[index],
+            settings: settings,
+          );
+        },
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _tabs,
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryOrange.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(24),
-          ),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        extendBody: true,
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _buildTabNavigators(),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12),
-            child: GNav(
-              gap: 8,
-              activeColor: AppTheme.primaryOrange,
-              iconSize: 26,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              duration: const Duration(milliseconds: 300),
-              tabBackgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-              color: AppTheme.textLight.withOpacity(0.4),
-              tabs: List.generate(
-                _icons.length,
-                (index) => GButton(
-                  icon: _icons[index],
-                  text: _labels[index],
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryOrange,
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryOrange.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12),
+              child: GNav(
+                gap: 8,
+                activeColor: AppTheme.primaryOrange,
+                iconSize: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                duration: const Duration(milliseconds: 300),
+                tabBackgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                color: AppTheme.textLight.withOpacity(0.4),
+                tabs: List.generate(
+                  _icons.length,
+                  (index) => GButton(
+                    icon: _icons[index],
+                    text: _labels[index],
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryOrange,
+                    ),
                   ),
                 ),
+                selectedIndex: _currentIndex,
+                onTabChange: (index) {
+                  if (index == _currentIndex) {
+                    final nav = _navigatorKeys[index].currentState;
+                    nav?.popUntil((route) => route.isFirst);
+                  } else {
+                    setState(() => _currentIndex = index);
+                  }
+                },
               ),
-              selectedIndex: _currentIndex,
-              onTabChange: (index) => setState(() => _currentIndex = index),
             ),
           ),
         ),
