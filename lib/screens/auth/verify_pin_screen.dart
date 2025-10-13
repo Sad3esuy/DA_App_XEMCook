@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../services/auth_service.dart';
+import '../../theme/app_theme.dart';
+import '../../services/auth_service.dart';
 import 'reset_password_screen.dart';
 
 class VerifyPinScreen extends StatefulWidget {

@@ -186,7 +186,13 @@ class AuthService {
         final success = jsonData['success'] ?? true;
         final message = jsonData['message'] ?? 'Thành công';
         final token = jsonData['token'] ?? jsonData['data']?['token'];
-        final userData = jsonData['user'] ?? jsonData['data']?['user'];
+        // Hỗ trợ cả dạng data.user và data (user object trực tiếp)
+        dynamic userData = jsonData['user'] ?? jsonData['data']?['user'];
+        if (userData == null && jsonData['data'] is Map) {
+          final d = jsonData['data'] as Map;
+          final looksLikeUser = d.containsKey('id') && (d.containsKey('email') || d.containsKey('fullName'));
+          if (looksLikeUser) userData = d;
+        }
         
         User? user;
         if (userData != null) {
@@ -467,6 +473,7 @@ class AuthService {
     String? fullName,
     String? bio,
     String? avatar,
+    String? avatarUploadBase64,
   }) async {
     try {
       final request = Auth.updateProfile(
@@ -474,11 +481,16 @@ class AuthService {
         bio: bio,
         avatar: avatar,
       );
+      // Gửi avatarUpload nếu có (data URI)
+      final Map<String, dynamic> body = request.toJson();
+      if (avatarUploadBase64 != null && avatarUploadBase64.isNotEmpty) {
+        body['avatarUpload'] = avatarUploadBase64;
+      }
 
       final response = await http.put(
         Uri.parse('$_authEndpoint/profile'),
         headers: await _getAuthHeaders(),
-        body: jsonEncode(request.toJson()),
+        body: jsonEncode(body),
       ).timeout(const Duration(seconds: 10));
 
       final result = _handleResponse(response);
@@ -565,11 +577,14 @@ class AuthService {
   /// Xóa tài khoản
   /// 
   /// DELETE /api/users/account
-  Future<Auth> deleteAccount({String? password}) async {
+  Future<Auth> deleteAccount({String? password, String? confirm}) async {
     try {
       final Map<String, dynamic> body = {};
       if (password != null && password.isNotEmpty) {
         body['password'] = password;
+      }
+      if (confirm != null && confirm.isNotEmpty) {
+        body['confirm'] = confirm;
       }
 
       final response = await http.delete(
@@ -587,6 +602,11 @@ class AuthService {
     } catch (e) {
       return _handleException(e);
     }
+  }
+
+  /// Tiện ích: Xóa tài khoản Google (tự gửi confirm = 'delete')
+  Future<Auth> deleteGoogleAccount() {
+    return deleteAccount(confirm: 'delete');
   }
 
   // ========== GOOGLE AUTH ==========

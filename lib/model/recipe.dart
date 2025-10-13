@@ -13,6 +13,8 @@ class Recipe {
   final String category;
   final String imageUrl;
   final bool isFavorite;
+  final double avgRating;
+  final int totalRatings;
   final List<String> tags;
   final Map<String, dynamic> nutrition; // dinh dưỡng (có thể rỗng)
   final String createdAt;
@@ -31,6 +33,8 @@ class Recipe {
     required this.category,
     required this.imageUrl,
     required this.isFavorite,
+    this.avgRating = 0.0,
+    this.totalRatings = 0,
     required this.tags,
     required this.nutrition,
     required this.createdAt,
@@ -52,17 +56,31 @@ class Recipe {
       category: json['category'],
       imageUrl: json['imageUrl'] ?? '',
       isFavorite: json['isFavorite'] ?? false,
+      avgRating: _parseDouble(json['avgRating']),
+      totalRatings: _parseInt(json['totalRatings']),
       tags: List<String>.from(json['tags'] ?? []),
       nutrition: json['nutrition'] ?? {},
       createdAt: json['createdAt'],
       updatedAt: json['updatedAt'],
-      ingredients: (json['ingredients'] as List<dynamic>)
+      ingredients: (json['ingredients'] as List<dynamic>? ?? const [])
           .map((e) => Ingredient.fromJson(e))
           .toList(),
-      instructions: (json['instructions'] as List<dynamic>)
+      instructions: (json['instructions'] as List<dynamic>? ?? const [])
           .map((e) => Instruction.fromJson(e))
           .toList(),
     );
+  }
+
+  static double _parseDouble(dynamic v) {
+    if (v == null) return 0.0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0.0;
+  }
+
+  static int _parseInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? 0;
   }
 
   /// Chuyển từ object Recipe sang JSON

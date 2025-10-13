@@ -15,6 +15,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   late Future<Recipe> _future;
   bool _busy = false;
   bool _favorite = false;
+  double _avg = 0;
+  int _total = 0;
 
   @override
   void initState() {
@@ -29,18 +31,84 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     await _future.catchError((_) {});
   }
 
+  Future<void> _openRateSheet(String recipeId) async {
+    int selected = 5;
+    final commentCtrl = TextEditingController();
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: StatefulBuilder(
+            builder: (context, setSheetState) => Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Đánh giá công thức', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) {
+                      final idx = i + 1;
+                      return IconButton(
+                        onPressed: () => setSheetState(() => selected = idx),
+                        icon: Icon(idx <= selected ? Icons.star : Icons.star_border, color: AppTheme.primaryOrange, size: 28),
+                      );
+                    }),
+                  ),
+                  TextField(
+                    controller: commentCtrl,
+                    decoration: const InputDecoration(hintText: 'Nhận xét (tuỳ chọn)'),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Gửi đánh giá'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (result == true) {
+      try {
+        final data = await RecipeApiService.rateRecipe(recipeId, selected, comment: commentCtrl.text.trim());
+        setState(() {
+          _avg = (data['avgRating'] ?? 0.0) is num ? (data['avgRating'] + 0.0) : 0.0;
+          _total = data['totalRatings'] ?? _total;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã gửi đánh giá')));
+        }
+        await _reload();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi đánh giá: $e')));
+        }
+      }
+    }
+  }
+
   Future<void> _delete(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa công thức'),
-        content: const Text('Bạn có chắc muốn xóa công thức này?'),
+        title: const Text('Xoá công thức'),
+        content: const Text('Bạn chắc chắn muốn xoá công thức này?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
-            child: const Text('Xóa'),
+            child: const Text('Xoá'),
           ),
         ],
       ),
@@ -52,13 +120,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       await RecipeApiService.deleteRecipe(id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã xóa công thức')),
+        const SnackBar(content: Text('ÄÃ£ xÃ³a cÃ´ng thá»©c')),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xóa thất bại: $e')),
+        SnackBar(content: Text('XÃ³a tháº¥t báº¡i: $e')),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -90,7 +158,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ElevatedButton.icon(
                         onPressed: _reload,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Thử lại'),
+                        label: const Text('Thá»­ láº¡i'),
                       )
                     ],
                   ),
@@ -100,6 +168,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
             final recipe = snapshot.data!;
             _favorite = recipe.isFavorite;
+            _avg = recipe.avgRating;
+            _total = recipe.totalRatings;
 
             final totalTime = recipe.prepTime + recipe.cookTime;
             return CustomScrollView(
@@ -116,19 +186,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                   actions: [
                     IconButton(
-                      tooltip: _favorite ? 'Bỏ yêu thích' : 'Yêu thích',
+                      tooltip: _favorite ? 'Bá» yÃªu thÃ­ch' : 'YÃªu thÃ­ch',
                       onPressed: _busy
                           ? null
                           : () async {
                               setState(() => _busy = true);
                               try {
-                                final updated = await RecipeApiService.toggleFavorite(recipe.id);
+                                final isFav = await RecipeApiService.toggleFavorite(recipe.id);
                                 if (!mounted) return;
-                                setState(() => _favorite = updated.isFavorite);
+                                setState(() => _favorite = isFav);
                               } catch (e) {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Lỗi: $e')),
+                                    SnackBar(content: Text('Lá»—i: $e')),
                                   );
                                 }
                               } finally {
@@ -150,10 +220,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         }
                       },
                       itemBuilder: (context) => [
-                        const PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                        const PopupMenuItem(value: 'edit', child: Text('Sá»­a')),
                         const PopupMenuItem(
                           value: 'delete',
-                          child: Text('Xóa', style: TextStyle(color: AppTheme.errorRed)),
+                          child: Text('XÃ³a', style: TextStyle(color: AppTheme.errorRed)),
                         ),
                       ],
                     ),
@@ -202,8 +272,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         children: [
                           _Chip(icon: Icons.category, label: recipe.category),
                           _Chip(icon: Icons.leaderboard, label: recipe.difficulty),
-                          _Chip(icon: Icons.timer, label: '$totalTime phút'),
-                          _Chip(icon: Icons.person, label: '${recipe.servings} khẩu phần'),
+                      const SizedBox(height: 12),
+                      _RatingSummary(avg: _avg, total: _total),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          onPressed: _busy ? null : () => _openRateSheet(recipe.id),
+                          icon: const Icon(Icons.star_rate_rounded, color: AppTheme.primaryOrange),
+                          label: const Text('Đánh giá'),
+                        ),
+                      ),
+                          _Chip(icon: Icons.timer, label: '$totalTime phÃºt'),
+                          _Chip(icon: Icons.person, label: '${recipe.servings} kháº©u pháº§n'),
                         ],
                       ),
                       if (recipe.tags.isNotEmpty) ...[
@@ -216,17 +297,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      _SectionTitle(icon: Icons.description_outlined, title: 'Mô tả'),
+                      _SectionTitle(icon: Icons.description_outlined, title: 'MÃ´ táº£'),
                       const SizedBox(height: 6),
                       Text(recipe.description, style: Theme.of(context).textTheme.bodyMedium),
                       const SizedBox(height: 16),
-                      _SectionTitle(icon: Icons.shopping_bag_outlined, title: 'Nguyên liệu'),
+                      _SectionTitle(icon: Icons.shopping_bag_outlined, title: 'NguyÃªn liá»‡u'),
                       const SizedBox(height: 8),
                       ...recipe.ingredients.map((i) => _Bullet('${i.quantity} ${i.unit} - ${i.name}')),
                       const SizedBox(height: 16),
-                      _SectionTitle(icon: Icons.format_list_numbered, title: 'Các bước thực hiện'),
+                      _SectionTitle(icon: Icons.format_list_numbered, title: 'CÃ¡c bÆ°á»›c thá»±c hiá»‡n'),
                       const SizedBox(height: 8),
-                      ...recipe.instructions.map((s) => _Bullet('Bước ${s.step}: ${s.description}')),
+                      ...recipe.instructions.map((s) => _Bullet('BÆ°á»›c ${s.step}: ${s.description}')),
                       const SizedBox(height: 24),
                     ]),
                   ),
@@ -281,8 +362,8 @@ class _Header extends StatelessWidget {
                 children: [
                   _Chip(icon: Icons.category, label: recipe.category),
                   _Chip(icon: Icons.leaderboard, label: recipe.difficulty),
-                  _Chip(icon: Icons.timer, label: '$totalTime phút'),
-                  _Chip(icon: Icons.person, label: '${recipe.servings} khẩu phần'),
+                  _Chip(icon: Icons.timer, label: '$totalTime phÃºt'),
+                  _Chip(icon: Icons.person, label: '${recipe.servings} kháº©u pháº§n'),
                 ],
               ),
               if (recipe.tags.isNotEmpty) ...[
@@ -334,7 +415,7 @@ class _Bullet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(width: 16),
-          const Text('• '),
+          const Text('â€¢ '),
           Expanded(child: Text(text)),
         ],
       ),
@@ -372,3 +453,27 @@ class _Chip extends StatelessWidget {
     );
   }
 }
+
+class _RatingSummary extends StatelessWidget {
+  final double avg;
+  final int total;
+  const _RatingSummary({required this.avg, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final full = avg.floor();
+    final hasHalf = (avg - full) >= 0.5;
+    return Row(
+      children: [
+        ...List.generate(5, (i) {
+          if (i < full) return const Icon(Icons.star, color: AppTheme.primaryOrange, size: 18);
+          if (i == full && hasHalf) return const Icon(Icons.star_half, color: AppTheme.primaryOrange, size: 18);
+          return const Icon(Icons.star_border, color: AppTheme.primaryOrange, size: 18);
+        }),
+        const SizedBox(width: 8),
+        Text('${avg.toStringAsFixed(1)} • $total đánh giá', style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    );
+  }
+}
+

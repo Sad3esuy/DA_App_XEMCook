@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
-import 'profile_screen.dart';
 import 'recipes_screen.dart';
+import 'recipe_form_screen.dart';
+import 'profile/profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -19,7 +20,7 @@ class _MainShellState extends State<MainShell> {
   final List<Widget> _tabRoots = const [
     HomeScreen(),
     RecipesScreen(),
-    _PlaceholderTab(title: 'Add'),
+    RecipeFormScreen(),
     _PlaceholderTab(title: 'Shop'),
     ProfileScreen(),
   ];

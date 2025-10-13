@@ -15,6 +15,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
   late Future<List<Recipe>> _future;
   String _query = '';
   String? _category; // null = tất cả
+  bool _showMine = false;
 
   static const List<String> _categories = <String>[
     'Món chính',
@@ -25,14 +26,41 @@ class _RecipesScreenState extends State<RecipesScreen> {
     'Khác'
   ];
 
-  Future<List<Recipe>> _fetch() {
-    if (_query.trim().isNotEmpty) {
-      return RecipeApiService.searchRecipes(_query.trim());
+  Future<List<Recipe>> _fetch() async {
+    final q = _query.trim();
+    final mappedCat = _mapVNtoBECategory(_category);
+    if (_showMine) {
+      final list = await RecipeApiService.getMyRecipes();
+      // Lọc client-side theo query/category cho danh sách của tôi
+      return list.where((r) {
+        final okQuery = q.isEmpty || r.title.toLowerCase().contains(q.toLowerCase()) || r.description.toLowerCase().contains(q.toLowerCase());
+        final okCat = mappedCat == null || r.category == mappedCat;
+        return okQuery && okCat;
+      }).toList();
+    } else {
+      return RecipeApiService.getAllRecipes(
+        search: q.isNotEmpty ? q : null,
+        category: mappedCat,
+      );
     }
-    if (_category != null && _category!.isNotEmpty) {
-      return RecipeApiService.getRecipesByCategory(_category!);
+  }
+
+  String? _mapVNtoBECategory(String? vn) {
+    switch (vn) {
+      case 'Món chính':
+        return 'dinner';
+      case 'Khai vị':
+        return 'snack';
+      case 'Tráng miệng':
+        return 'dessert';
+      case 'Thức uống':
+        return 'beverage';
+      case 'Ăn vặt':
+        return 'snack';
+      case 'Khác':
+        return 'other';
     }
-    return RecipeApiService.getAllRecipes();
+    return null;
   }
 
   @override
@@ -72,6 +100,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 query: _query,
                 category: _category,
                 categories: _categories,
+                showMine: _showMine,
                 onQueryChanged: (v) => setState(() => _query = v),
                 onSearch: _applyFilters,
                 onClearSearch: () {
@@ -80,6 +109,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 },
                 onCategorySelected: (cat) {
                   setState(() => _category = cat);
+                  _applyFilters();
+                },
+                onToggleMine: (mine) {
+                  setState(() => _showMine = mine);
                   _applyFilters();
                 },
               )),
@@ -138,19 +171,23 @@ class _Header extends StatelessWidget {
   final String query;
   final String? category;
   final List<String> categories;
+  final bool showMine;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearch;
   final VoidCallback onClearSearch;
   final ValueChanged<String?> onCategorySelected;
+  final ValueChanged<bool> onToggleMine;
 
   const _Header({
     required this.query,
     required this.category,
     required this.categories,
+    required this.showMine,
     required this.onQueryChanged,
     required this.onSearch,
     required this.onClearSearch,
     required this.onCategorySelected,
+    required this.onToggleMine,
   });
 
   @override
@@ -176,6 +213,32 @@ class _Header extends StatelessWidget {
                     )
                   : null,
             ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ChoiceChip(
+                label: const Text('Khám phá'),
+                selected: !showMine,
+                selectedColor: AppTheme.primaryOrange.withOpacity(0.15),
+                labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: !showMine ? AppTheme.primaryOrange : AppTheme.textDark,
+                      fontWeight: FontWeight.w600,
+                    ),
+                onSelected: (_) => onToggleMine(false),
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('Của tôi'),
+                selected: showMine,
+                selectedColor: AppTheme.primaryOrange.withOpacity(0.15),
+                labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: showMine ? AppTheme.primaryOrange : AppTheme.textDark,
+                      fontWeight: FontWeight.w600,
+                    ),
+                onSelected: (_) => onToggleMine(true),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           SingleChildScrollView(
@@ -350,7 +413,8 @@ class _RecipeItemState extends State<_RecipeItem> {
       final updated = await RecipeApiService.toggleFavorite(widget.recipe.id);
       if (mounted) {
         setState(() {
-          _favorite = updated.isFavorite;
+          // toggleFavorite returns a bool (true if now favorite)
+          _favorite = updated;
           _busy = false;
         });
       }
@@ -376,7 +440,7 @@ class _RecipeItemState extends State<_RecipeItem> {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () async {
-          final changed = await Navigator.of(context).push<bool>(
+          final changed = await Navigator.of(context, rootNavigator: true).push<bool>(
             MaterialPageRoute(
               builder: (_) => RecipeDetailScreen(recipeId: widget.recipe.id),
             ),

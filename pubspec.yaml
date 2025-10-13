@@ -26,6 +26,9 @@ dependencies:
   # Validation
   email_validator: ^2.1.17
   
+  # Utilities
+  url_launcher: ^6.3.0
+  
   # Animation
   animated_text_kit: ^4.2.2
   #convex_bottom_bar: ^3.2.0

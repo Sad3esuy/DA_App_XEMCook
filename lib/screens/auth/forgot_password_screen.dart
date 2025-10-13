@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:email_validator/email_validator.dart';
-import '../theme/app_theme.dart';
-import '../model/auth.dart';
-import '../services/auth_service.dart';
+import '../../theme/app_theme.dart';
+import '../../model/auth.dart';
+import '../../services/auth_service.dart';
 import 'login_screen.dart';
 import 'verify_pin_screen.dart';
 
