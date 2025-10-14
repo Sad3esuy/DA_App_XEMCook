@@ -29,6 +29,7 @@ class RecipeApiService {
       'category': recipe.category,
       'imageUrl': recipe.imageUrl,
       'isFavorite': recipe.isFavorite,
+      'isPublic': recipe.isPublic,
       'tags': recipe.tags,
       'nutrition': recipe.nutrition,
       'ingredients': recipe.ingredients

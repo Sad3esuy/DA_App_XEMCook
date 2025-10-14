@@ -4,6 +4,7 @@ import 'instruction.dart';
 /// Model Recipe - Công thức nấu ăn
 class Recipe {
   final String id;
+  final String? userId;
   final String title;
   final String description;
   final int prepTime;
@@ -13,6 +14,7 @@ class Recipe {
   final String category;
   final String imageUrl;
   final bool isFavorite;
+  final bool isPublic;
   final double avgRating;
   final int totalRatings;
   final List<String> tags;
@@ -24,6 +26,7 @@ class Recipe {
 
   Recipe({
     required this.id,
+    this.userId,
     required this.title,
     required this.description,
     required this.prepTime,
@@ -33,6 +36,7 @@ class Recipe {
     required this.category,
     required this.imageUrl,
     required this.isFavorite,
+    this.isPublic = false,
     this.avgRating = 0.0,
     this.totalRatings = 0,
     required this.tags,
@@ -47,6 +51,7 @@ class Recipe {
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
       id: json['id'],
+      userId: json['userId']?.toString(),
       title: json['title'],
       description: json['description'],
       prepTime: json['prepTime'],
@@ -56,6 +61,7 @@ class Recipe {
       category: json['category'],
       imageUrl: json['imageUrl'] ?? '',
       isFavorite: json['isFavorite'] ?? false,
+      isPublic: _parseBool(json['isPublic']),
       avgRating: _parseDouble(json['avgRating']),
       totalRatings: _parseInt(json['totalRatings']),
       tags: List<String>.from(json['tags'] ?? []),
@@ -83,10 +89,22 @@ class Recipe {
     return int.tryParse(v.toString()) ?? 0;
   }
 
+  static bool _parseBool(dynamic v) {
+    if (v is bool) return v;
+    if (v == null) return false;
+    if (v is num) return v != 0;
+    if (v is String) {
+      final lower = v.toLowerCase();
+      return lower == 'true' || lower == '1' || lower == 'yes';
+    }
+    return false;
+  }
+
   /// Chuyển từ object Recipe sang JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'userId': userId,
       'title': title,
       'description': description,
       'prepTime': prepTime,
@@ -96,6 +114,7 @@ class Recipe {
       'category': category,
       'imageUrl': imageUrl,
       'isFavorite': isFavorite,
+      'isPublic': isPublic,
       'tags': tags,
       'nutrition': nutrition,
       'createdAt': createdAt,

@@ -6,7 +6,7 @@ import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/model/recipe.dart';
-import 'recipe_detail_screen.dart';
+import 'recipe/recipe_detail_screen.dart';
 // Screen món yêu thích
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});

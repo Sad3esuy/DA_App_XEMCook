@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:test_ui_app/model/recipe.dart';
+import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
+import 'package:test_ui_app/screens/recipe/recipe_form_screen.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
@@ -17,11 +19,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   bool _favorite = false;
   double _avg = 0;
   int _total = 0;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _future = RecipeApiService.getRecipeById(widget.recipeId);
+    _loadCurrentUser();
   }
 
   Future<void> _reload() async {
@@ -29,6 +33,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       _future = RecipeApiService.getRecipeById(widget.recipeId);
     });
     await _future.catchError((_) {});
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await AuthService().getUser();
+    if (!mounted) return;
+    setState(() => _currentUserId = user?.id);
   }
 
   Future<void> _openRateSheet(String recipeId) async {
@@ -120,13 +130,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       await RecipeApiService.deleteRecipe(id);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ÄÃ£ xÃ³a cÃ´ng thá»©c')),
+        const SnackBar(content: Text('Đã xoá công thức')),
       );
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('XÃ³a tháº¥t báº¡i: $e')),
+        SnackBar(content: Text('Xoá thất bại: $e')),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -158,7 +168,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       ElevatedButton.icon(
                         onPressed: _reload,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Thá»­ láº¡i'),
+                        label: const Text('Thất bại, thử lại'),
                       )
                     ],
                   ),
@@ -172,6 +182,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             _total = recipe.totalRatings;
 
             final totalTime = recipe.prepTime + recipe.cookTime;
+            final canManage = _currentUserId != null &&
+                (recipe.userId ?? '').isNotEmpty &&
+                recipe.userId == _currentUserId;
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -186,7 +199,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   ),
                   actions: [
                     IconButton(
-                      tooltip: _favorite ? 'Bá» yÃªu thÃ­ch' : 'YÃªu thÃ­ch',
+                      tooltip: _favorite ? 'Bỏ yêu thích' : 'Yêu thích',
                       onPressed: _busy
                           ? null
                           : () async {
@@ -198,7 +211,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               } catch (e) {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Lá»—i: $e')),
+                                    SnackBar(content: Text('Lỗi: $e')),
                                   );
                                 }
                               } finally {
@@ -207,32 +220,35 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             },
                       icon: Icon(_favorite ? Icons.favorite : Icons.favorite_border, color: AppTheme.primaryOrange),
                     ),
-                    PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        // if (value == 'edit') {
-                        //   final updated = await Navigator.of(context).push<bool>(
-                        //     MaterialPageRoute(builder: (_) => RecipeFormScreen(initial: recipe)),
-                        //   );
-                        //   if (updated == true) _reload();
-                        // } else 
-                        if (value == 'delete') {
-                          _delete(recipe.id);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: 'edit', child: Text('Sá»­a')),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('XÃ³a', style: TextStyle(color: AppTheme.errorRed)),
-                        ),
-                      ],
-                    ),
+                    if (canManage)
+                      PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'edit') {
+                            final updated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => RecipeFormScreen(recipeId: recipe.id)),
+                            );
+                            if (updated == true) {
+                              _reload();
+                            }
+                          } else if (value == 'delete') {
+                            _delete(recipe.id);
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Sửa')),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Xoá', style: TextStyle(color: AppTheme.errorRed)),
+                          ),
+                        ],
+                      ),
                   ],
                   flexibleSpace: FlexibleSpaceBar(
                     titlePadding: const EdgeInsetsDirectional.only(start: 16, bottom: 12),
                     title: Text(
                       recipe.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.textDark),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.lightCream),
                     ),
                     background: Stack(
                       fit: StackFit.expand,
@@ -283,8 +299,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           label: const Text('Đánh giá'),
                         ),
                       ),
-                          _Chip(icon: Icons.timer, label: '$totalTime phÃºt'),
-                          _Chip(icon: Icons.person, label: '${recipe.servings} kháº©u pháº§n'),
+                          _Chip(icon: Icons.timer, label: '$totalTime phút'),
+                          _Chip(icon: Icons.person, label: '${recipe.servings} khẩu phần'),
                         ],
                       ),
                       if (recipe.tags.isNotEmpty) ...[
@@ -297,17 +313,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      _SectionTitle(icon: Icons.description_outlined, title: 'MÃ´ táº£'),
+                      _SectionTitle(icon: Icons.description_outlined, title: 'Mô tả'),
                       const SizedBox(height: 6),
                       Text(recipe.description, style: Theme.of(context).textTheme.bodyMedium),
                       const SizedBox(height: 16),
-                      _SectionTitle(icon: Icons.shopping_bag_outlined, title: 'NguyÃªn liá»‡u'),
+                      _SectionTitle(icon: Icons.shopping_bag_outlined, title: 'Nguyên liệu'),
                       const SizedBox(height: 8),
                       ...recipe.ingredients.map((i) => _Bullet('${i.quantity} ${i.unit} - ${i.name}')),
                       const SizedBox(height: 16),
-                      _SectionTitle(icon: Icons.format_list_numbered, title: 'CÃ¡c bÆ°á»›c thá»±c hiá»‡n'),
+                      _SectionTitle(icon: Icons.format_list_numbered, title: 'Các bước thực hiện'),
                       const SizedBox(height: 8),
-                      ...recipe.instructions.map((s) => _Bullet('BÆ°á»›c ${s.step}: ${s.description}')),
+                      ...recipe.instructions.map((s) => _Bullet('Bước ${s.step}: ${s.description}')),
                       const SizedBox(height: 24),
                     ]),
                   ),
@@ -362,8 +378,8 @@ class _Header extends StatelessWidget {
                 children: [
                   _Chip(icon: Icons.category, label: recipe.category),
                   _Chip(icon: Icons.leaderboard, label: recipe.difficulty),
-                  _Chip(icon: Icons.timer, label: '$totalTime phÃºt'),
-                  _Chip(icon: Icons.person, label: '${recipe.servings} kháº©u pháº§n'),
+                  _Chip(icon: Icons.timer, label: '$totalTime phút'),
+                  _Chip(icon: Icons.person, label: '${recipe.servings} khẩu phần'),
                 ],
               ),
               if (recipe.tags.isNotEmpty) ...[
@@ -415,7 +431,7 @@ class _Bullet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(width: 16),
-          const Text('â€¢ '),
+          const Text('• '),
           Expanded(child: Text(text)),
         ],
       ),

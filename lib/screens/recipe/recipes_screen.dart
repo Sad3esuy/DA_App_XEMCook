@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
-import 'package:test_ui_app/screens/recipe_detail_screen.dart';
+import 'package:test_ui_app/screens/recipe/recipe_detail_screen.dart';
 
 class RecipesScreen extends StatefulWidget {
   const RecipesScreen({super.key});

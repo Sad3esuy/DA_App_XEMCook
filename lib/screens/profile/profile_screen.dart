@@ -7,8 +7,8 @@ import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'change_password_screen.dart';
 import 'package:test_ui_app/model/recipe.dart';
-import '../recipe_detail_screen.dart';
-import '../my_recipes_screen.dart';
+import '../recipe/recipe_detail_screen.dart';
+import '../recipe/my_recipes_screen.dart';
 import 'edit_profile_screen.dart';
 import '../auth/login_screen.dart';
 import 'widget/statItem.dart';
@@ -304,8 +304,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
-          : CustomScrollView(
-              slivers: [
+          : RefreshIndicator(
+        color: AppTheme.primaryOrange,
+        backgroundColor: Colors.white,
+        strokeWidth: 2.5,
+        // Hàm gọi khi kéo xuống
+        onRefresh: () async => _load(),   // hoặc: () => _load()
+        // Nội dung cuộn
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // rất quan trọng
+          slivers: [
                 // Header với avatar và thông tin user
                 SliverToBoxAdapter(
                   child: Container(
@@ -531,6 +539,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ),
+                          MenuItem(
+                            icon: Icons.mode_comment_sharp,
+                            title: 'Đánh giá của tôi',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MyRecipesScreen(),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -606,6 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
+          )
     );
   }
 }
