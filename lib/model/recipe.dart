@@ -5,6 +5,9 @@ import 'instruction.dart';
 class Recipe {
   final String id;
   final String? userId;
+  final String? authorId;
+  final String? authorName;
+  final String? authorAvatar;
   final String title;
   final String description;
   final int prepTime;
@@ -23,10 +26,14 @@ class Recipe {
   final String updatedAt;
   final List<Ingredient> ingredients;
   final List<Instruction> instructions;
+  final List<Map<String, dynamic>> ratings;
 
   Recipe({
     required this.id,
     this.userId,
+    this.authorId,
+    this.authorName,
+    this.authorAvatar,
     required this.title,
     required this.description,
     required this.prepTime,
@@ -45,13 +52,18 @@ class Recipe {
     required this.updatedAt,
     required this.ingredients,
     required this.instructions,
+    this.ratings = const <Map<String, dynamic>>[],
   });
 
   /// Chuyển từ JSON sang object Recipe
   factory Recipe.fromJson(Map<String, dynamic> json) {
+    final author = _extractAuthor(json);
     return Recipe(
       id: json['id'],
       userId: json['userId']?.toString(),
+      authorId: author['id'],
+      authorName: author['name'],
+      authorAvatar: author['avatar'],
       title: json['title'],
       description: json['description'],
       prepTime: json['prepTime'],
@@ -73,6 +85,9 @@ class Recipe {
           .toList(),
       instructions: (json['instructions'] as List<dynamic>? ?? const [])
           .map((e) => Instruction.fromJson(e))
+          .toList(),
+      ratings: (json['ratings'] as List<dynamic>? ?? const [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
           .toList(),
     );
   }
@@ -105,6 +120,9 @@ class Recipe {
     return {
       'id': id,
       'userId': userId,
+      if (authorId != null) 'authorId': authorId,
+      if (authorName != null) 'authorName': authorName,
+      if (authorAvatar != null) 'authorAvatar': authorAvatar,
       'title': title,
       'description': description,
       'prepTime': prepTime,
@@ -121,6 +139,56 @@ class Recipe {
       'updatedAt': updatedAt,
       'ingredients': ingredients.map((e) => e.toJson()).toList(),
       'instructions': instructions.map((e) => e.toJson()).toList(),
+      'ratings': ratings,
     };
+  }
+
+  static Map<String, String?> _extractAuthor(Map<String, dynamic> json) {
+    final result = <String, String?>{
+      'id': null,
+      'name': null,
+      'avatar': null,
+    };
+
+    Map<String, dynamic>? resolveNested(dynamic value) {
+      if (value == null) return null;
+      if (value is Map<String, dynamic>) return value;
+      if (value is Map) {
+        try {
+          return Map<String, dynamic>.from(value as Map);
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    final nested = resolveNested(json['author']) ??
+        resolveNested(json['creator']) ??
+        resolveNested(json['user']);
+
+    String? pickName(dynamic source) {
+      if (source == null) return null;
+      if (source is String) return source;
+      return null;
+    }
+
+    result['id'] = json['authorId']?.toString() ?? nested?['id']?.toString();
+
+    result['name'] = pickName(json['authorName']) ??
+        pickName(json['creatorName']) ??
+        pickName(json['userName']) ??
+        nested?['fullName'] as String? ??
+        nested?['name'] as String? ??
+        nested?['username'] as String? ??
+        nested?['displayName'] as String?;
+
+    result['avatar'] = json['authorAvatar'] as String? ??
+        json['creatorAvatar'] as String? ??
+        nested?['avatar'] as String? ??
+        nested?['photo'] as String? ??
+        nested?['picture'] as String?;
+
+    return result;
   }
 }

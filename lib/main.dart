@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
-import 'services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/auth/welcome_screen.dart';
@@ -110,13 +109,10 @@ class _SplashScreenState extends State<SplashScreen>
       );
     } else {
       // Không phải lần đầu -> kiểm tra trạng thái đăng nhập
-      final authService = AuthService();
-      final isLoggedIn = await authService.isLoggedIn();
-
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) {
-            return isLoggedIn ? const MainShell() : const LoginScreen();
+            return const MainShell();
           },
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
