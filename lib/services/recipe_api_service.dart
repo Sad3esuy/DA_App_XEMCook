@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/recipe.dart';
+import '../model/home_feed.dart';
 
 class RecipeApiService {
   static const String baseUrl = "http://10.0.2.2:5000/api/recipes";
@@ -72,6 +73,30 @@ class RecipeApiService {
       }
     } catch (e) {
       throw Exception("Error fetching recipes: $e");
+    }
+  }
+
+  /// GET aggregated home feed sections
+  static Future<HomeFeed> getHomeFeed({String? season}) async {
+    try {
+      final headers = await _authHeaders();
+      final query = <String, String>{};
+      if (season != null && season.isNotEmpty) {
+        query['season'] = season;
+      }
+      final uri = Uri.parse("$baseUrl/home").replace(
+        queryParameters: query.isEmpty ? null : query,
+      );
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final data = body['data'] as Map<String, dynamic>? ?? const {};
+        return HomeFeed.fromJson(data);
+      } else {
+        throw Exception("Failed to load home feed (status: ${response.statusCode})");
+      }
+    } catch (e) {
+      throw Exception("Error fetching home feed: $e");
     }
   }
 

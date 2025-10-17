@@ -20,6 +20,7 @@ class Recipe {
   final bool isPublic;
   final double avgRating;
   final int totalRatings;
+  final int viewCount;
   final List<String> tags;
   final Map<String, dynamic> nutrition; // dinh dưỡng (có thể rỗng)
   final String createdAt;
@@ -46,6 +47,7 @@ class Recipe {
     this.isPublic = false,
     this.avgRating = 0.0,
     this.totalRatings = 0,
+    this.viewCount = 0,
     required this.tags,
     required this.nutrition,
     required this.createdAt,
@@ -76,6 +78,7 @@ class Recipe {
       isPublic: _parseBool(json['isPublic']),
       avgRating: _parseDouble(json['avgRating']),
       totalRatings: _parseInt(json['totalRatings']),
+      viewCount: _parseInt(json['viewCount']),
       tags: List<String>.from(json['tags'] ?? []),
       nutrition: json['nutrition'] ?? {},
       createdAt: json['createdAt'],
@@ -135,6 +138,7 @@ class Recipe {
       'isPublic': isPublic,
       'tags': tags,
       'nutrition': nutrition,
+      'viewCount': viewCount,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'ingredients': ingredients.map((e) => e.toJson()).toList(),
