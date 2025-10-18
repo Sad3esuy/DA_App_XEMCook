@@ -60,5 +60,5 @@ flutter_launcher_icons:
   android: true
   ios: true
   adaptive_icon_background: "#000000"                      # hoặc ảnh: assets/icons/ic_bg.png
-  adaptive_icon_foreground: "assets/icons/app_icon_v1.jpg"    # phần foreground
-  image_path: "assets/icons/app_icon_v1.jpg"                  # vẫn giữ để iOS dùng
+  adaptive_icon_foreground: "assets/icons/app_icon_v3.jpg"    # phần foreground
+  image_path: "assets/icons/app_icon_v3.jpg"                  # vẫn giữ để iOS dùng

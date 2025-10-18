@@ -127,16 +127,9 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.secondaryYellow,
-              AppTheme.lightCream,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+      decoration: BoxDecoration(
+        color: Color.fromARGB(255, 66, 107, 93), // Hoặc một màu bất kỳ bạn muốn
+      ),
         child: Center(
           child: AnimatedBuilder(
             animation: _animationController,
@@ -150,9 +143,9 @@ class _SplashScreenState extends State<SplashScreen>
                     children: [
                       Center(
                         child: Image.asset(
-                          'assets/images/Logo_App_v3.png',
-                          width: 100,
-                          height: 100,
+                          'assets/images/app_icon_v2.png',
+                          width: 400,
+                          height: 400,
                         ),
                       ),
 
@@ -163,7 +156,7 @@ class _SplashScreenState extends State<SplashScreen>
                         'XEMCook',
                         style:
                             Theme.of(context).textTheme.displayLarge?.copyWith(
-                                  color: AppTheme.primaryOrange,
+                                  color: Color.fromARGB(0, 255, 255, 255),
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.5,
                                 ),
@@ -172,13 +165,23 @@ class _SplashScreenState extends State<SplashScreen>
                       const SizedBox(height: 8),
 
                       Text(
-                        'Công thức nấu ăn của bạn',
+                        'Công thức nấu ăn là bạn',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textLight,
+                              fontSize: 24,
+                              color: const Color.fromARGB(255, 255, 255, 255),
                               letterSpacing: 0.5,
                             ),
                       ),
+                      const SizedBox(height: 8),
 
+                      Text(
+                        'Bạn là công thức',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontSize: 24,
+                              color: const Color.fromARGB(255, 255, 255, 255),
+                              letterSpacing: 0.5,
+                            ),
+                      ),
                       const SizedBox(height: 48),
 
                       // Loading indicator
@@ -186,7 +189,7 @@ class _SplashScreenState extends State<SplashScreen>
                         width: 40,
                         height: 40,
                         child: CircularProgressIndicator(
-                          color: AppTheme.primaryOrange,
+                          color: const Color.fromARGB(255, 255, 255, 255),
                           strokeWidth: 3,
                         ),
                       ),
