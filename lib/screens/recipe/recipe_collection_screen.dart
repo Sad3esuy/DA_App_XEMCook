@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../model/recipe.dart';
 import '../../services/recipe_api_service.dart';
 import '../../theme/app_theme.dart';
@@ -75,6 +74,9 @@ class RecipeCollectionConfig {
     this.initialTimeframe = 'all',
     this.timeframeTarget,
     this.initialSort = RecipeCollectionSort.defaultSort,
+    this.initialSearch,
+    this.enableSearch = false,
+    this.searchHint,
   });
 
   final String title;
@@ -87,6 +89,9 @@ class RecipeCollectionConfig {
   final String initialTimeframe;
   final String? timeframeTarget;
   final RecipeCollectionSort initialSort;
+  final String? initialSearch;
+  final bool enableSearch;
+  final String? searchHint;
 }
 
 class RecipeCollectionScreen extends StatefulWidget {
@@ -151,6 +156,11 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   late _FilterOption _selectedTimeframe;
   late RecipeCollectionSort _selectedSort;
 
+  late final bool _enableSearch;
+  TextEditingController? _searchController;
+  String? _searchQuery;
+  VoidCallback? _searchListener;
+
   bool _isFetching = false;
   bool _isInitialLoad = true;
   String? _error;
@@ -158,6 +168,18 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   @override
   void initState() {
     super.initState();
+    _enableSearch = widget.config.enableSearch;
+    final initialSearch = widget.config.initialSearch?.trim();
+    _searchQuery = (initialSearch != null && initialSearch.isNotEmpty) ? initialSearch : null;
+    if (_enableSearch) {
+      _searchController = TextEditingController(text: initialSearch ?? '');
+      _searchListener = () {
+        if (!mounted) return;
+        setState(() {});
+      };
+      _searchController!.addListener(_searchListener!);
+    }
+
     _selectedCategory = widget.config.initialCategory;
     _selectedDifficulty = widget.config.initialDifficulty;
     _selectedMaxTotalTime = widget.config.initialMaxTotalTime;
@@ -185,6 +207,10 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
 
   @override
   void dispose() {
+    if (_searchListener != null && _searchController != null) {
+      _searchController!.removeListener(_searchListener!);
+    }
+    _searchController?.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -201,6 +227,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
 
     try {
       final recipes = await RecipeApiService.getAllRecipes(
+        search: _searchQuery,
         category: _selectedCategory,
         difficulty: _selectedDifficulty,
         dietTags: _selectedDietTags.isEmpty ? null : _selectedDietTags.toList(),
@@ -243,6 +270,78 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
       if (message.isNotEmpty) return message;
     }
     return raw;
+  }
+
+  void _applySearch([String? value]) {
+    final query = value ?? _searchController?.text ?? '';
+    final normalized = query.trim();
+    final newQuery = normalized.isEmpty ? null : normalized;
+    if (newQuery == _searchQuery) return;
+    setState(() {
+      _searchQuery = newQuery;
+    });
+    _scrollToTop();
+    _fetchRecipes(initial: true);
+  }
+
+  void _clearSearch() {
+    final controller = _searchController;
+    if (controller == null) return;
+    final hasStoredQuery = _searchQuery != null;
+    if (controller.text.isEmpty && !hasStoredQuery) {
+      return;
+    }
+    controller.clear();
+    if (!hasStoredQuery) {
+      setState(() {});
+      return;
+    }
+    setState(() {
+      _searchQuery = null;
+    });
+    _scrollToTop();
+    _fetchRecipes(initial: true);
+  }
+
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
+    final controller = _searchController;
+    if (controller == null) {
+      return const SizedBox.shrink();
+    }
+    final hint =
+        widget.config.searchHint ?? 'Hôm nay ăn gì? Tìm món ngon ngay thôi!';
+    return TextField(
+      controller: controller,
+      textInputAction: TextInputAction.search,
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w100),
+      onSubmitted: (value) {
+        FocusScope.of(context).unfocus();
+        _applySearch(value);
+      },
+      decoration: InputDecoration(
+        hintText: hint,
+        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: controller.text.isNotEmpty
+            ? IconButton(
+                onPressed: () {
+                  FocusScope.of(context).unfocus();
+                  _clearSearch();
+                },
+                icon: const Icon(Icons.close_rounded),
+              )
+            : null,
+      ),
+    );
   }
 
   void _showFilterBottomSheet() {
@@ -481,6 +580,15 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
     return count;
   }
 
+  String _formatTotalTimeLabel(int minutes) {
+    for (final option in _totalTimeOptions) {
+      if (option.value == minutes) {
+        return option.label;
+      }
+    }
+    return '≤ $minutes phút';
+  }
+
   void _clearAllFilters() {
     setState(() {
       _selectedCategory = null;
@@ -498,6 +606,9 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
     final hasRecipes = _recipes.isNotEmpty;
     final isLoading = _isInitialLoad && _isFetching;
     final activeFilters = _activeFiltersCount;
+    final subtitleText = _enableSearch && (_searchQuery?.isNotEmpty ?? false)
+        ? 'Kết quả cho "${_searchQuery!}"'
+        : widget.config.subtitle;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -570,14 +681,23 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
               ],
             ),
 
+            if (_enableSearch)
+              SliverToBoxAdapter(
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: _buildSearchBar(context),
+                ),
+              ),
+
             // Subtitle
-            if (widget.config.subtitle != null && widget.config.subtitle!.isNotEmpty)
+            if (subtitleText != null && subtitleText.isNotEmpty)
               SliverToBoxAdapter(
                 child: Container(
                   color: Colors.white,
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                   child: Text(
-                    widget.config.subtitle!,
+                    subtitleText,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: AppTheme.textLight,
                     ),
@@ -630,9 +750,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                                     ),
                                   if (_selectedMaxTotalTime != null)
                                     _ActiveFilterChip(
-                                      label: _totalTimeOptions
-                                          .firstWhere((o) => o.value == _selectedMaxTotalTime)
-                                          .label,
+                                      label: _formatTotalTimeLabel(_selectedMaxTotalTime!),
                                       onRemove: () => _onTimeSelected(null),
                                     ),
                                   if (_selectedDietTags.isNotEmpty)
@@ -1445,7 +1563,7 @@ class _EmptyView extends StatelessWidget {
             const Icon(Icons.no_food, size: 42, color: AppTheme.textLight),
             const SizedBox(height: 12),
             Text(
-              'Chua co cong thuc nao trong muc nay.',
+              'Chưa có công thức nào trong mục này.',
               style: Theme.of(context)
                   .textTheme
                   .bodyMedium

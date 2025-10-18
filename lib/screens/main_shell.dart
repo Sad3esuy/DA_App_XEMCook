@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import '../theme/app_theme.dart';
-import 'favorite_screen.dart';
+//import 'favorite_screen.dart';
 import 'home_screen.dart';
 import 'search/search_screen.dart';
 import 'profile/profile_screen.dart';
