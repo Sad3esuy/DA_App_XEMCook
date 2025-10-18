@@ -5,9 +5,9 @@ import '../model/user.dart';
 import '../services/auth_service.dart';
 import '../services/recipe_api_service.dart';
 import '../theme/app_theme.dart';
+import 'recipe/recipe_collection_screen.dart';
 import 'recipe/recipe_detail_screen.dart';
 import 'recipe/recipe_form_screen.dart';
-import 'recipe/recipes_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -142,7 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     _SectionHeader(
                       title: 'Top Rated',
                       actionLabel: 'See all',
-                      onActionTap: _openAllRecipes,
+                      onActionTap: () => _openCollection(
+                        const RecipeCollectionConfig(title: 'Top Rated'),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _LatestRecipesStrip(
@@ -155,7 +157,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     _SectionHeader(
                       title: 'Most Viewed',
                       actionLabel: 'See all',
-                      onActionTap: _openAllRecipes,
+                      onActionTap: () => _openCollection(
+                        const RecipeCollectionConfig(
+                          title: 'Most Viewed',
+                          initialSort: RecipeCollectionSort.views,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _LatestRecipesStrip(
@@ -166,9 +173,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (quickMeals.isNotEmpty) ...[
                     _SectionHeader(
-                      title: 'Quick Meals • 20 min or less',
+                      title: 'Quick Meals - 20 min or less',
                       actionLabel: 'See all',
-                      onActionTap: _openAllRecipes,
+                      onActionTap: () => _openCollection(
+                        const RecipeCollectionConfig(
+                          title: 'Quick Meals',
+                          subtitle: 'Ready in 20 minutes or less',
+                          initialMaxTotalTime: 20,
+                          initialSort: RecipeCollectionSort.totalTime,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _LatestRecipesStrip(
@@ -177,11 +191,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 32),
                   ],
-                  if (feed.seasonal.hasRecipes && seasonalRecipes.isNotEmpty) ...[
+                  if (feed.seasonal.hasRecipes &&
+                      seasonalRecipes.isNotEmpty) ...[
                     _SectionHeader(
                       title: 'Seasonal Picks',
                       actionLabel: 'See all',
-                      onActionTap: _openAllRecipes,
+                      onActionTap: () => _openCollection(
+                        RecipeCollectionConfig(
+                          title: feed.seasonal.label,
+                          subtitle: 'Seasonal picks curated for you',
+                          initialDietTags: feed.seasonal.tags,
+                          initialTimeframe: 'month',
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -220,9 +242,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openAllRecipes() {
+  void _openCollection(RecipeCollectionConfig config) {
     Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(builder: (_) => const RecipesScreen()),
+      MaterialPageRoute(
+        builder: (_) => RecipeCollectionScreen(config: config),
+      ),
     );
   }
 
@@ -265,7 +289,8 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 71, 186, 232).withValues(alpha: 0.1),
+            color:
+                const Color.fromARGB(255, 71, 186, 232).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
@@ -311,11 +336,13 @@ class _HomeScreenState extends State<HomeScreen> {
             clipBehavior: Clip.none,
             physics: const BouncingScrollPhysics(),
             itemCount: recipes.length,
-            onPageChanged: (index) => setState(() => _recipeOfTheDayIndex = index),
+            onPageChanged: (index) =>
+                setState(() => _recipeOfTheDayIndex = index),
             itemBuilder: (context, index) {
               final recipe = recipes[index];
               return Padding(
-                padding: EdgeInsets.only(right: index == recipes.length - 1 ? 0 : 16),
+                padding: EdgeInsets.only(
+                    right: index == recipes.length - 1 ? 0 : 16),
                 child: _FeaturedRecipeBanner(
                   recipe: recipe,
                   label: 'Recipe of the Day',
@@ -563,6 +590,7 @@ class _LatestRecipeCard extends StatelessWidget {
         chips.add(chip);
       }
     }
+
     if (recipe.avgRating > 0) {
       addChip(
         _RecipeChip(
@@ -658,7 +686,6 @@ class _LatestRecipeCard extends StatelessWidget {
                     bottom: 10,
                     child: _LikePill(count: likes),
                   ),
-                  
                 ],
               ),
             ),
@@ -924,12 +951,17 @@ class _SeasonalTagRow extends StatelessWidget {
     if (tags.isEmpty) {
       return const SizedBox.shrink();
     }
-    final displayTags = tags.take(6).map((tag) {
-      final clean = tag.trim();
-      if (clean.isEmpty) return '';
-      final normalized = clean.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
-      return '#$normalized';
-    }).where((tag) => tag.isNotEmpty).toList();
+    final displayTags = tags
+        .take(6)
+        .map((tag) {
+          final clean = tag.trim();
+          if (clean.isEmpty) return '';
+          final normalized =
+              clean.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+          return '#$normalized';
+        })
+        .where((tag) => tag.isNotEmpty)
+        .toList();
 
     if (displayTags.isEmpty) {
       return const SizedBox.shrink();

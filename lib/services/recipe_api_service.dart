@@ -55,21 +55,47 @@ class RecipeApiService {
   }
 
   /// GET all recipes
-  static Future<List<Recipe>> getAllRecipes({String? search, String? category, String? difficulty, List<String>? tags}) async {
+  static Future<List<Recipe>> getAllRecipes({
+    String? search,
+    String? category,
+    String? difficulty,
+    List<String>? tags,
+    List<String>? dietTags,
+    int? maxTotalTime,
+    String? timeframe,
+    String? timeframeTarget,
+    String? sort,
+    int? page,
+    int? limit,
+  }) async {
     try {
       final q = <String, String>{};
       if (search != null && search.isNotEmpty) q['search'] = search;
       if (category != null && category.isNotEmpty) q['category'] = category;
-      if (difficulty != null && difficulty.isNotEmpty) q['difficulty'] = difficulty;
+      if (difficulty != null && difficulty.isNotEmpty)
+        q['difficulty'] = difficulty;
       if (tags != null && tags.isNotEmpty) q['tags'] = tags.join(',');
-      final uri = Uri.parse(baseUrl).replace(queryParameters: q.isEmpty ? null : q);
+      if (dietTags != null && dietTags.isNotEmpty)
+        q['dietTags'] = dietTags.join(',');
+      if (maxTotalTime != null && maxTotalTime > 0)
+        q['maxTotalTime'] = maxTotalTime.toString();
+      if (timeframe != null && timeframe.isNotEmpty) q['timeframe'] = timeframe;
+      if (timeframeTarget != null && timeframeTarget.isNotEmpty) {
+        q['timeframeTarget'] = timeframeTarget;
+      }
+      if (sort != null && sort.isNotEmpty) q['sort'] = sort;
+      if (page != null && page > 0) q['page'] = page.toString();
+      if (limit != null && limit > 0) q['limit'] = limit.toString();
+      final uri =
+          Uri.parse(baseUrl).replace(queryParameters: q.isEmpty ? null : q);
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         final body = json.decode(response.body);
         final List<dynamic> data = body['data'];
         return data.map((json) => Recipe.fromJson(json)).toList();
       } else {
-        throw Exception("Failed to load recipes (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to load recipes (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error fetching recipes: $e");
@@ -93,7 +119,8 @@ class RecipeApiService {
         final data = body['data'] as Map<String, dynamic>? ?? const {};
         return HomeFeed.fromJson(data);
       } else {
-        throw Exception("Failed to load home feed (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to load home feed (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error fetching home feed: $e");
@@ -111,7 +138,8 @@ class RecipeApiService {
         final body = json.decode(response.body);
         return Recipe.fromJson(body['data']);
       } else {
-        throw Exception("Failed to load recipe (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to load recipe (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error fetching recipe by ID: $e");
@@ -130,7 +158,8 @@ class RecipeApiService {
         final body = json.decode(response.body);
         return Recipe.fromJson(body['data']);
       } else {
-        throw Exception("Failed to create recipe (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to create recipe (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error creating recipe: $e");
@@ -149,7 +178,8 @@ class RecipeApiService {
         final body = json.decode(response.body);
         return Recipe.fromJson(body['data']);
       } else {
-        throw Exception("Failed to update recipe (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to update recipe (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error updating recipe: $e");
@@ -159,11 +189,13 @@ class RecipeApiService {
   /// DELETE recipe
   static Future<bool> deleteRecipe(String id) async {
     try {
-      final response = await http.delete(Uri.parse("$baseUrl/$id"), headers: await _authHeaders());
+      final response = await http.delete(Uri.parse("$baseUrl/$id"),
+          headers: await _authHeaders());
       if (response.statusCode == 200) {
         return true;
       } else {
-        throw Exception("Failed to delete recipe (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to delete recipe (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error deleting recipe: $e");
@@ -179,7 +211,8 @@ class RecipeApiService {
         final List<dynamic> data = body['data'];
         return data.map((json) => Recipe.fromJson(json)).toList();
       } else {
-        throw Exception("Failed to load recipes by category (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to load recipes by category (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error fetching recipes by category: $e");
@@ -195,7 +228,8 @@ class RecipeApiService {
         final List<dynamic> data = body['data'];
         return data.map((json) => Recipe.fromJson(json)).toList();
       } else {
-        throw Exception("Failed to search recipes (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to search recipes (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error searching recipes: $e");
@@ -213,7 +247,8 @@ class RecipeApiService {
         final body = json.decode(response.body);
         return body['data']?['isFavorite'] == true;
       } else {
-        throw Exception("Failed to toggle favorite (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to toggle favorite (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error toggling favorite: $e");
@@ -221,7 +256,8 @@ class RecipeApiService {
   }
 
   /// GET current user's favorites (list of recipes)
-  static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
+  static Future<List<Recipe>> getFavorites(
+      {int page = 1, int limit = 20}) async {
     try {
       final uri = Uri.parse("$baseUrl/favorites").replace(queryParameters: {
         'page': page.toString(),
@@ -250,7 +286,8 @@ class RecipeApiService {
               'tags': r['tags'] ?? <String>[],
               'nutrition': r['nutrition'] ?? <String, dynamic>{},
               'createdAt': r['createdAt'] ?? DateTime.now().toIso8601String(),
-              'updatedAt': r['updatedAt'] ?? (r['createdAt'] ?? DateTime.now().toIso8601String()),
+              'updatedAt': r['updatedAt'] ??
+                  (r['createdAt'] ?? DateTime.now().toIso8601String()),
               'ingredients': <dynamic>[],
               'instructions': <dynamic>[],
             };
@@ -259,7 +296,8 @@ class RecipeApiService {
         }
         return recipes;
       } else {
-        throw Exception("Failed to load favorites (status: ${response.statusCode})");
+        throw Exception(
+            "Failed to load favorites (status: ${response.statusCode})");
       }
     } catch (e) {
       throw Exception("Error fetching favorites: $e");
@@ -267,7 +305,8 @@ class RecipeApiService {
   }
 
   /// POST rate a recipe
-  static Future<Map<String, dynamic>> rateRecipe(String id, int rating, {String? comment}) async {
+  static Future<Map<String, dynamic>> rateRecipe(String id, int rating,
+      {String? comment}) async {
     try {
       final body = {
         'rating': rating,
@@ -281,11 +320,14 @@ class RecipeApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body)['data'] ?? {};
         return {
-          'avgRating': (data['avgRating'] is num) ? (data['avgRating'] + 0.0) : double.tryParse('${data['avgRating']}') ?? 0.0,
+          'avgRating': (data['avgRating'] is num)
+              ? (data['avgRating'] + 0.0)
+              : double.tryParse('${data['avgRating']}') ?? 0.0,
           'totalRatings': data['totalRatings'] ?? 0,
         };
       } else {
-        throw Exception('Failed to rate recipe (status: ${response.statusCode})');
+        throw Exception(
+            'Failed to rate recipe (status: ${response.statusCode})');
       }
     } catch (e) {
       throw Exception('Error rating recipe: $e');
@@ -293,7 +335,8 @@ class RecipeApiService {
   }
 
   /// GET my recipes (requires auth)
-  static Future<List<Recipe>> getMyRecipes({int page = 1, int limit = 20}) async {
+  static Future<List<Recipe>> getMyRecipes(
+      {int page = 1, int limit = 20}) async {
     try {
       final uri = Uri.parse("$baseUrl/my/recipes").replace(queryParameters: {
         'page': page.toString(),
@@ -305,7 +348,8 @@ class RecipeApiService {
         final List<dynamic> data = body['data'] ?? [];
         return data.map((e) => Recipe.fromJson(e)).toList();
       }
-      throw Exception('Failed to load my recipes (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to load my recipes (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error fetching my recipes: $e');
     }
@@ -314,12 +358,14 @@ class RecipeApiService {
   /// GET my recipe detail (requires auth)
   static Future<Recipe> getMyRecipeDetail(String id) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/my/recipes/$id"), headers: await _authHeaders());
+      final response = await http.get(Uri.parse("$baseUrl/my/recipes/$id"),
+          headers: await _authHeaders());
       if (response.statusCode == 200) {
         final body = json.decode(response.body);
         return Recipe.fromJson(body['data']);
       }
-      throw Exception('Failed to load my recipe detail (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to load my recipe detail (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error fetching my recipe detail: $e');
     }
@@ -358,14 +404,16 @@ class RecipeApiService {
       'instructions': instructions,
       'isPublic': isPublic,
     };
-    final res = await http.post(Uri.parse(baseUrl), headers: await _authHeaders(), body: json.encode(body));
+    final res = await http.post(Uri.parse(baseUrl),
+        headers: await _authHeaders(), body: json.encode(body));
     if (res.statusCode == 201) {
       final jsonBody = json.decode(res.body);
       return Recipe.fromJson(jsonBody['data']);
     }
     try {
       final jsonBody = json.decode(res.body);
-      final msg = jsonBody['message'] ?? jsonBody['error'] ?? 'Failed to create recipe';
+      final msg =
+          jsonBody['message'] ?? jsonBody['error'] ?? 'Failed to create recipe';
       throw Exception('$msg (status: ${res.statusCode})');
     } catch (_) {
       throw Exception('Failed to create recipe (status: ${res.statusCode})');
@@ -406,14 +454,16 @@ class RecipeApiService {
       if (instructions != null) 'instructions': instructions,
       if (isPublic != null) 'isPublic': isPublic,
     };
-    final res = await http.put(Uri.parse('$baseUrl/$id'), headers: await _authHeaders(), body: json.encode(body));
+    final res = await http.put(Uri.parse('$baseUrl/$id'),
+        headers: await _authHeaders(), body: json.encode(body));
     if (res.statusCode == 200) {
       final jsonBody = json.decode(res.body);
       return Recipe.fromJson(jsonBody['data']);
     }
     try {
       final jsonBody = json.decode(res.body);
-      final msg = jsonBody['message'] ?? jsonBody['error'] ?? 'Failed to update recipe';
+      final msg =
+          jsonBody['message'] ?? jsonBody['error'] ?? 'Failed to update recipe';
       throw Exception('$msg (status: ${res.statusCode})');
     } catch (_) {
       throw Exception('Failed to update recipe (status: ${res.statusCode})');

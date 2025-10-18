@@ -242,7 +242,7 @@ class _GridRecipeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 140,
+              height: 160,
               child: Stack(
                 children: [
                   ClipRRect(
