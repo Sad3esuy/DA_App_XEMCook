@@ -1267,10 +1267,10 @@ class _BottomSheetChip extends StatelessWidget {
             vertical: 10,
           ),
           decoration: BoxDecoration(
-            color: selected ? AppTheme.primaryOrange : Colors.grey.shade100,
+            color: selected ? const Color.fromARGB(107, 102, 165, 144) : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: selected ? AppTheme.primaryOrange : Colors.transparent,
+              color: selected ? const Color.fromARGB(156, 117, 198, 171) : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -1281,15 +1281,15 @@ class _BottomSheetChip extends StatelessWidget {
                 Icon(
                   icon,
                   size: 18,
-                  color: selected ? Colors.white : AppTheme.textDark,
+                  color: selected ? AppTheme.primaryOrange : AppTheme.textDark,
                 ),
                 const SizedBox(width: 6),
               ],
               Text(
                 label,
                 style: TextStyle(
-                  color: selected ? Colors.white : AppTheme.textDark,
-                  fontWeight: FontWeight.w400,
+                  color: selected ? AppTheme.primaryOrange : AppTheme.textDark,
+                  fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
               ),
@@ -1337,10 +1337,7 @@ class _GridRecipeCard extends StatelessWidget {
               child: Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(18),
-                      topRight: Radius.circular(18),
-                    ),
+                    borderRadius: BorderRadius.circular(16),
                     child: recipe.imageUrl.isNotEmpty
                         ? Image.network(
                             recipe.imageUrl,

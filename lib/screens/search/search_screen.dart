@@ -568,7 +568,7 @@ class _QuickFilterCard extends StatelessWidget {
         onTap: onTap,
         leading: CircleAvatar(
           radius: 24,
-          backgroundColor: const Color.fromARGB(255, 217, 253, 239),
+          backgroundColor: const Color.fromARGB(208, 221, 240, 232),
           child: Icon(filter.icon, color: AppTheme.primaryOrange),
         ),
         title: Text(
@@ -591,7 +591,7 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color.fromARGB(255, 217, 253, 239),
+      color: const Color.fromARGB(208, 221, 240, 232),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),

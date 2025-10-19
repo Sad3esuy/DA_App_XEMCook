@@ -530,16 +530,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.menu_book_outlined,
-                            title: 'Công thức của tôi',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyRecipesScreen(),
-                              ),
-                            ),
-                          ),
-                          MenuItem(
                             icon: Icons.mode_comment_outlined,
                             title: 'Đánh giá của tôi',
                             onTap: () => Navigator.push(
