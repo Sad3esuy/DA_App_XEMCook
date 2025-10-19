@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_ui_app/model/user.dart';
 import 'package:test_ui_app/services/auth_service.dart';
-import 'package:test_ui_app/services/recipe_api_service.dart';
+//import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'change_password_screen.dart';
-import 'package:test_ui_app/model/recipe.dart';
-import '../recipe/recipe_detail_screen.dart';
+// import 'package:test_ui_app/model/recipe.dart';
+// import '../recipe/recipe_detail_screen.dart';
 import '../recipe/my_recipes_screen.dart';
 import 'edit_profile_screen.dart';
 import '../auth/login_screen.dart';
@@ -15,6 +15,8 @@ import 'widget/statItem.dart';
 import 'widget/menuItem.dart';
 import 'widget/menuSection.dart';
 import '../favorite_screen.dart';
+import 'about_us_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -587,7 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const FavoritesScreen(),
+                                builder: (_) => const AboutUsScreen(),
                               ),
                             ),
                           ),
@@ -597,7 +599,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const MyRecipesScreen(),
+                                builder: (_) => const PrivacyPolicyScreen(),
                               ),
                             ),
                           ),
@@ -644,4 +646,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
