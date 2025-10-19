@@ -80,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppTheme.primaryOrange,
         onPressed: () async {
@@ -650,7 +651,7 @@ class _LatestRecipeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 160,
+              height: 180,
               child: Stack(
                 children: [
                   ClipRRect(
@@ -914,13 +915,13 @@ class _LikePill extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withValues(alpha: 0.05),
+        //     blurRadius: 10,
+        //     offset: const Offset(0, 4),
+        //   ),
+        // ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -520,7 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'Nội dung',
                         items: [
                           MenuItem(
-                            icon: Icons.favorite_outline,
+                            icon: Icons.favorite_border_outlined,
                             title: 'Món yêu thích',
                             onTap: () => Navigator.push(
                               context,
@@ -540,7 +540,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.mode_comment_sharp,
+                            icon: Icons.mode_comment_outlined,
                             title: 'Đánh giá của tôi',
                             onTap: () => Navigator.push(
                               context,
@@ -556,7 +556,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'Cài đặt hệ thống',
                         items: [
                           MenuItem(
-                            icon: Icons.language_sharp,
+                            icon: Icons.language_outlined,
                             title: 'Ngôn ngữ',
                             onTap: () => Navigator.push(
                               context,
@@ -566,7 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.brightness_4,
+                            icon: Icons.brightness_4_outlined,
                             title: 'Giao diện',
                             onTap: () => Navigator.push(
                               context,
@@ -576,8 +576,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.circle_notifications_sharp,
+                            icon: Icons.circle_notifications_outlined,
                             title: 'Thông báo',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MyRecipesScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      MenuSection(
+                        title: 'Thông tin',
+                        items: [
+                          MenuItem(
+                            icon: Icons.info_outlined,
+                            title: 'Về chúng tôi',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FavoritesScreen(),
+                              ),
+                            ),
+                          ),
+                          MenuItem(
+                            icon: Icons.policy_outlined,
+                            title: 'chính sách bảo mật',
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(

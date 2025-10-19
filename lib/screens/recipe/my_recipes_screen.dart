@@ -29,7 +29,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Công thức của tôi'), backgroundColor: Colors.white, surfaceTintColor: Colors.white,
+      appBar: AppBar(title: const Text('Công thức của tôi'), backgroundColor: AppTheme.secondaryYellow, surfaceTintColor: Colors.white,
         actions: [
           IconButton(onPressed: () async {
             final created = await Navigator.push(context, MaterialPageRoute(builder: (_) => const RecipeFormScreen()));

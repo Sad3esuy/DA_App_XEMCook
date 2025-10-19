@@ -7,9 +7,10 @@ class ShoppingListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.secondaryYellow,
       appBar: AppBar(
         title: const Text('Shopping list'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.secondaryYellow,
         surfaceTintColor: Colors.white,
       ),
       body: Center(
