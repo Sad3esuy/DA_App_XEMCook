@@ -102,6 +102,47 @@ class RecipeApiService {
     }
   }
 
+  /// GET search suggestions
+  static Future<List<String>> getSearchSuggestions(
+    String keyword, {
+    int limit = 8,
+  }) async {
+    final query = keyword.trim();
+    if (query.isEmpty) {
+      return const <String>[];
+    }
+    try {
+      final params = <String, String>{
+        'q': query,
+        'limit': limit.toString(),
+      };
+      final uri = Uri.parse('$baseUrl/search/suggestions')
+          .replace(queryParameters: params);
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body) as Map<String, dynamic>? ?? {};
+        final data = body['data'] as List<dynamic>? ?? const [];
+        final results = <String>[];
+        for (final item in data) {
+          final value = item.toString().trim();
+          if (value.isEmpty) continue;
+          final exists = results.any(
+            (element) => element.toLowerCase() == value.toLowerCase(),
+          );
+          if (!exists) {
+            results.add(value);
+          }
+        }
+        return results;
+      } else {
+        throw Exception(
+            'Failed to load search suggestions (status: ${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Error fetching search suggestions: $e');
+    }
+  }
+
   /// GET aggregated home feed sections
   static Future<HomeFeed> getHomeFeed({String? season}) async {
     try {
