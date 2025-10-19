@@ -300,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
-        backgroundColor: Color(0xFFFF8C42),
+        backgroundColor: AppTheme.primaryOrange,
       ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
@@ -318,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SliverToBoxAdapter(
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFF8C42), // chỉ một màu
+                      color: AppTheme.primaryOrange, // chỉ một màu
                     ),
                     child: SafeArea(
                       bottom: false,

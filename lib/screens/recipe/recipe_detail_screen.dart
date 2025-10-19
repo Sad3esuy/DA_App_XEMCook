@@ -385,7 +385,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_sharp, color: Colors.black87),
+                      icon: const Icon(Icons.arrow_back_outlined, color: Colors.black87),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),

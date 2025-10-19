@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
+import 'package:dotted_border/dotted_border.dart';
 
 class RecipeFormScreen extends StatefulWidget {
   final String? recipeId;
@@ -15,9 +16,9 @@ class RecipeFormScreen extends StatefulWidget {
 class _RecipeFormScreenState extends State<RecipeFormScreen> {
   final _title = TextEditingController();
   final _desc = TextEditingController();
-  final _prep = TextEditingController(text: '0');
-  final _cook = TextEditingController(text: '0');
-  final _servings = TextEditingController(text: '1');
+  final _prep = TextEditingController(text: '');
+  final _cook = TextEditingController(text: '');
+  final _servings = TextEditingController(text: '');
   String _difficulty = 'medium';
   String _category = 'other';
   String _imageDataUri = '';
@@ -108,13 +109,17 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       );
       return;
     }
-    if (_ingredients.where((e) => (e['name'] ?? '').trim().isNotEmpty).isEmpty) {
+    if (_ingredients
+        .where((e) => (e['name'] ?? '').trim().isNotEmpty)
+        .isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Thêm ít nhất 1 nguyên liệu')),
       );
       return;
     }
-    if (_instructions.where((e) => (e['description'] ?? '').trim().isNotEmpty).isEmpty) {
+    if (_instructions
+        .where((e) => (e['description'] ?? '').trim().isNotEmpty)
+        .isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Thêm ít nhất 1 bước hướng dẫn')),
       );
@@ -123,15 +128,24 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
     setState(() => _busy = true);
     try {
-      final tagList = _tags.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      final tagList = _tags.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
       final imgUpload = _imageDataUri.isNotEmpty ? _imageDataUri : null;
-      final ing = _ingredients.where((e) => (e['name'] ?? '').trim().isNotEmpty).toList();
+      final ing = _ingredients
+          .where((e) => (e['name'] ?? '').trim().isNotEmpty)
+          .toList();
       final steps = _instructions
           .where((e) => (e['description'] ?? '').trim().isNotEmpty)
           .toList()
           .asMap()
           .entries
-          .map((entry) => {'step': entry.key + 1, 'description': entry.value['description']})
+          .map((entry) => {
+                'step': entry.key + 1,
+                'description': entry.value['description']
+              })
           .toList();
 
       if (widget.recipeId == null) {
@@ -163,7 +177,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             _cook.text = '0';
             _servings.text = '1';
             _difficulty = 'medium';
-             _category = 'other';
+            _category = 'other';
             _imageDataUri = '';
             _existingImageUrl = null;
             _tags.clear();
@@ -212,216 +226,284 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: Text(
           widget.recipeId == null ? 'Tạo công thức mới' : 'Chỉnh sửa công thức',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: Colors.grey[200],
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Basic Info Section
-                _buildSection(
-                  title: 'Thông tin cơ bản',
-                  icon: Icons.info_outline,
-                  children: [
-                    _buildTextField(
-                      controller: _title,
-                      label: 'Tên món ăn',
-                      hint: 'VD: Phở bò Hà Nội',
-                      icon: Icons.restaurant_menu,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _desc,
-                      label: 'Mô tả',
-                      hint: 'Mô tả ngắn gọn về món ăn của bạn',
-                      icon: Icons.description_outlined,
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _tags,
-                      label: 'Tags',
-                      hint: 'VD: nhanh, dễ làm, ít dầu mỡ',
-                      icon: Icons.local_offer_outlined,
-                      helperText: 'Phân tách bởi dấu phẩy',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Image picker section
+            _buildImageSection(),
 
-                // Image Section
-                _buildSection(
-                  title: 'Hình ảnh',
-                  icon: Icons.image_outlined,
-                  children: [
-                    _buildImagePicker(),
-                  ],
-                ),
-                const SizedBox(height: 24),
+            // Form content
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+              child: Column(
+                children: [
+                  // Basic Info
+                  _buildCardSection(
+                    children: [
+                      _buildSectionHeader('Thông tin cơ bản', Icons.edit_note),
+                      const SizedBox(height: 16),
+                      _buildSimpleTextField(
+                        controller: _title,
+                        label: 'Tên món ăn',
+                        hint: 'VD: Phở bò Hà Nội',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSimpleTextField(
+                        controller: _desc,
+                        label: 'Mô tả',
+                        hint: 'Mô tả ngắn gọn về món ăn...',
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
 
-                // Details Section
-                _buildSection(
-                  title: 'Chi tiết',
-                  icon: Icons.tune,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildNumberField(
-                            controller: _prep,
-                            label: 'Chuẩn bị',
-                            suffix: 'phút',
-                            icon: Icons.access_time,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildNumberField(
-                            controller: _cook,
-                            label: 'Nấu',
-                            suffix: 'phút',
-                            icon: Icons.timer_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildNumberField(
-                            controller: _servings,
-                            label: 'Khẩu phần',
-                            suffix: 'người',
-                            icon: Icons.people_outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Độ khó',
-                            value: _difficulty,
-                            icon: Icons.signal_cellular_alt,
-                            items: const [
-                              {'value': 'easy', 'label': 'Dễ'},
-                              {'value': 'medium', 'label': 'Trung bình'},
-                              {'value': 'hard', 'label': 'Khó'},
-                            ],
-                            onChanged: (v) => setState(() => _difficulty = v ?? 'medium'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Danh mục',
-                            value: _category,
-                            icon: Icons.category_outlined,
-                            items: const [
-                              {'value': 'breakfast', 'label': 'Sáng'},
-                              {'value': 'lunch', 'label': 'Trưa'},
-                              {'value': 'dinner', 'label': 'Tối'},
-                              {'value': 'dessert', 'label': 'Tráng miệng'},
-                              {'value': 'snack', 'label': 'Ăn vặt'},
-                              {'value': 'beverage', 'label': 'Đồ uống'},
-                              {'value': 'other', 'label': 'Khác'},
-                            ],
-                            onChanged: (v) => setState(() => _category = v ?? 'other'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildPublicSwitch(),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
-                // Ingredients Section
-                _buildSection(
-                  title: 'Nguyên liệu',
-                  icon: Icons.shopping_basket_outlined,
-                  children: [
-                    ..._ingredients.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final ingredient = entry.value;
-                      return _buildIngredientRow(i, ingredient);
-                    }),
-                    const SizedBox(height: 8),
-                    _buildAddButton(
-                      label: 'Thêm nguyên liệu',
-                      onPressed: () => setState(() {
-                        _ingredients.add({'name': '', 'quantity': '', 'unit': ''});
+                  // Cooking details
+                  _buildCardSection(
+                    children: [
+                      _buildSectionHeader('Chi tiết', Icons.schedule),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildNumberField(
+                              controller: _prep,
+                              label: 'Chuẩn bị',
+                              unit: 'phút',
+                              hint: '0',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildNumberField(
+                              controller: _cook,
+                              label: 'Nấu',
+                              unit: 'phút',
+                              hint: '0',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildNumberField(
+                              controller: _servings,
+                              label: 'Khẩu phần',
+                              unit: 'người',
+                              hint: '1',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDifficultySelector(),
+                      const SizedBox(height: 12),
+                      _buildCategorySelector(),
+                      const SizedBox(height: 12),
+                      _buildPublicSwitch(),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Ingredients
+                  _buildCardSection(
+                    children: [
+                      _buildSectionHeader(
+                          'Nguyên liệu', Icons.shopping_basket_outlined),
+                      const SizedBox(height: 12),
+                      ..._ingredients.asMap().entries.map((entry) {
+                        return _buildIngredientInput(entry.key, entry.value);
                       }),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                      const SizedBox(height: 8),
+                      _buildAddButton(
+                        label: 'Thêm nguyên liệu',
+                        onPressed: () => setState(() {
+                          _ingredients
+                              .add({'name': '', 'quantity': '', 'unit': ''});
+                        }),
+                      ),
+                    ],
+                  ),
 
-                // Instructions Section
-                _buildSection(
-                  title: 'Hướng dẫn',
-                  icon: Icons.format_list_numbered,
-                  children: [
-                    ..._instructions.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final instruction = entry.value;
-                      return _buildInstructionRow(i, instruction);
-                    }),
-                    const SizedBox(height: 8),
-                    _buildAddButton(
-                      label: 'Thêm bước',
-                      onPressed: () => setState(() {
-                        _instructions.add({
-                          'step': _instructions.length + 1,
-                          'description': '',
-                        });
+                  const SizedBox(height: 12),
+
+                  // Instructions
+                  _buildCardSection(
+                    children: [
+                      _buildSectionHeader(
+                          'Hướng dẫn nấu', Icons.format_list_numbered),
+                      const SizedBox(height: 12),
+                      ..._instructions.asMap().entries.map((entry) {
+                        return _buildInstructionInput(entry.key, entry.value);
                       }),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 100),
-              ],
+                      const SizedBox(height: 8),
+                      _buildAddButton(
+                        label: 'Thêm bước',
+                        onPressed: () => setState(() {
+                          _instructions.add({
+                            'step': _instructions.length + 1,
+                            'description': '',
+                          });
+                        }),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Bottom Action Bar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildBottomBar(),
-          ),
-        ],
+          ],
+        ),
+      ),
+      floatingActionButton: _buildFloatingSubmitButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildImageSection() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        width: double.infinity,
+        height: 160,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          // boxShadow: [
+          //   BoxShadow(
+          //     color: Colors.black.withOpacity(0.04),
+          //     blurRadius: 8,
+          //     offset: const Offset(0, 2),
+          //   ),
+          // ],
+        ),
+        child: _resolveImagePreview() != null
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: _resolveImagePreview(),
+                  ),
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color.fromARGB(135, 0, 0, 0),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.edit,
+                              size: 16, color: AppTheme.primaryOrange),
+                          SizedBox(width: 6),
+                          Text(
+                            'Thay đổi',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryOrange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : DottedBorder(
+                options: RoundedRectDottedBorderOptions(
+                  radius: const Radius.circular(16),
+                  dashPattern: const [6, 3],
+                  strokeWidth: 1.2,
+                  color: AppTheme.primaryOrange,
+                  // padding của nét viền vào child
+                  padding: const EdgeInsets.all(1),
+                ),
+                child: Container(
+                  height: 160,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    // boxShadow: [
+                    //   BoxShadow(
+                    //     color: Colors.black.withOpacity(0.04),
+                    //     blurRadius: 8,
+                    //     offset: const Offset(0, 2),
+                    //   ),
+                    // ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryOrange.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add_photo_alternate_outlined,
+                          size: 40,
+                          color: AppTheme.primaryOrange,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Thêm ảnh món ăn',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tối đa 12 MB',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildSection({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
+  Widget _buildCardSection({required List<Widget> children}) {
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -430,44 +512,41 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 20, color: AppTheme.primaryOrange),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
+        children: children,
       ),
     );
   }
 
-  Widget _buildTextField({
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryOrange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: AppTheme.primaryOrange),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSimpleTextField({
     required TextEditingController controller,
     required String label,
-    required IconData icon,
-    String? hint,
-    String? helperText,
+    required String hint,
     int maxLines = 1,
   }) {
     return Column(
@@ -476,34 +555,31 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
             color: Colors.black87,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
           maxLines: maxLines,
+          style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            helperText: helperText,
-            prefixIcon: Icon(icon, size: 20, color: Colors.grey[600]),
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
             filled: true,
-            fillColor: Colors.grey[50],
+            fillColor: const Color(0xFFF8F9FA),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
       ],
@@ -513,158 +589,631 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   Widget _buildNumberField({
     required TextEditingController controller,
     required String label,
-    required String suffix,
-    required IconData icon,
+    required String unit,
+    required String hint,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+              fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
-            suffixText: suffix,
-            suffixStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
-            prefixIcon: Icon(icon, size: 18, color: Colors.grey[600]),
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
             filled: true,
-            fillColor: Colors.grey[50],
+            fillColor: const Color(0xFFF8F9FA),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
           ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          unit,
+          style: const TextStyle(fontSize: 11, color: Colors.grey),
         ),
       ],
     );
   }
 
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required IconData icon,
-    required List<Map<String, String>> items,
-    required ValueChanged<String?> onChanged,
-  }) {
+  Widget _buildDifficultySelector() {
+    final difficulties = [
+      {'value': 'easy', 'label': 'Dễ'},
+      {'value': 'medium', 'label': 'Trung bình'},
+      {'value': 'hard', 'label': 'Khó'},
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
+        const Text('Độ khó',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
+        Row(
+          children: difficulties.map((d) {
+            final isSelected = _difficulty == d['value'];
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _difficulty = d['value'] as String),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryOrange.withOpacity(0.1)
+                        : const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppTheme.primaryOrange
+                          : const Color(0xFFE5E7EB),
+                      width: isSelected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    d['label'] as String,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected
+                          ? AppTheme.primaryOrange
+                          : Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySelector() {
+    final categories = [
+      {'value': 'breakfast', 'label': 'Sáng'},
+      {'value': 'lunch', 'label': 'Trưa'},
+      {'value': 'dinner', 'label': 'Tối'},
+      {'value': 'dessert', 'label': 'Tráng miệng'},
+      {'value': 'snack', 'label': 'Ăn vặt'},
+      {'value': 'beverage', 'label': 'Đồ uống'},
+      {'value': 'other', 'label': 'Khác'},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Danh mục',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: categories.map((c) {
+            final isSelected = _category == c['value'];
+            return GestureDetector(
+              onTap: () => setState(() => _category = c['value'] as String),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.primaryOrange.withOpacity(0.1)
+                      : const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primaryOrange
+                        : const Color(0xFFE5E7EB),
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Text(
+                  c['label'] as String,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color:
+                        isSelected ? AppTheme.primaryOrange : Colors.grey[700],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPublicSwitch() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _isPublic
+            ? AppTheme.primaryOrange.withOpacity(0.05)
+            : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: _isPublic
+              ? AppTheme.primaryOrange.withOpacity(0.3)
+              : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
             children: [
-              Icon(icon, size: 20, color: Colors.grey[600]),
+              Icon(
+                _isPublic ? Icons.public : Icons.lock_outline,
+                size: 18,
+                color: _isPublic ? AppTheme.primaryOrange : Colors.grey[600],
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Công khai công thức',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87)),
+                  Text(
+                    _isPublic ? 'Mọi người có thể xem' : 'Chỉ bạn có thể xem',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Switch(
+            value: _isPublic,
+            onChanged: (v) => setState(() => _isPublic = v),
+            activeColor: AppTheme.primaryOrange,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIngredientInput(int index, Map<String, String> ingredient) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF0F0F0), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header với số thứ tự và nút xóa
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryOrange,
+                  ),
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: value,
-                    isExpanded: true,
-                    onChanged: onChanged,
-                    items: items.map((item) {
-                      return DropdownMenuItem<String>(
-                        value: item['value'],
-                        child: Text(item['label']!),
-                      );
-                    }).toList(),
+                child: Text(
+                  'Nguyên liệu ${index + 1}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+              if (_ingredients.length > 1)
+                InkWell(
+                  onTap: () => setState(() => _ingredients.removeAt(index)),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.red[400],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Tên nguyên liệu
+          TextField(
+            controller: TextEditingController(text: ingredient['name'])
+              ..selection = TextSelection.fromPosition(
+                TextPosition(offset: ingredient['name']?.length ?? 0),
+              ),
+            onChanged: (v) => _ingredients[index]['name'] = v,
+            decoration: InputDecoration(
+              hintText: 'Nhập tên nguyên liệu',
+              hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFFAFAFA),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppTheme.primaryOrange,
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              prefixIcon: Icon(
+                Icons.restaurant,
+                size: 20,
+                color: Colors.grey[400],
+              ),
+            ),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Số lượng và đơn vị
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: TextEditingController(
+                      text: ingredient['quantity'])
+                    ..selection = TextSelection.fromPosition(
+                      TextPosition(offset: ingredient['quantity']?.length ?? 0),
+                    ),
+                  onChanged: (v) => _ingredients[index]['quantity'] = v,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    hintText: 'Số lượng',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFFAFAFA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primaryOrange,
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: TextEditingController(text: ingredient['unit'])
+                    ..selection = TextSelection.fromPosition(
+                      TextPosition(offset: ingredient['unit']?.length ?? 0),
+                    ),
+                  onChanged: (v) => _ingredients[index]['unit'] = v,
+                  decoration: InputDecoration(
+                    hintText: 'Đơn vị',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 13,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFFAFAFA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primaryOrange,
+                        width: 1.5,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildImagePicker() {
-    final preview = _resolveImagePreview();
-    final hasImage = preview != null;
-
-    return InkWell(
-      onTap: _pickImage,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 180,
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: hasImage ? AppTheme.primaryOrange : Colors.grey[300]!,
-            width: hasImage ? 2 : 1,
-          ),
-        ),
-        child: hasImage ? _buildSelectedImage(preview!) : _buildImagePlaceholder(),
+        ],
       ),
     );
   }
 
-  Widget _buildImagePlaceholder() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryOrange.withOpacity(0.1),
-            shape: BoxShape.circle,
+  Widget _buildInstructionInput(int index, Map<String, dynamic> instruction) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF0F0F0), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: const Icon(
-            Icons.add_photo_alternate_outlined,
-            size: 40,
-            color: AppTheme.primaryOrange,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header với số thứ tự và nút xóa
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryOrange,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Bước ${index + 1}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+              if (_instructions.length > 1)
+                InkWell(
+                  onTap: () => setState(() => _instructions.removeAt(index)),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.red[400],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Mô tả bước
+          TextField(
+            controller: TextEditingController(text: instruction['description'])
+              ..selection = TextSelection.fromPosition(
+                TextPosition(offset: instruction['description']?.length ?? 0),
+              ),
+            onChanged: (v) => _instructions[index]['description'] = v,
+            maxLines: null,
+            minLines: 2,
+            decoration: InputDecoration(
+              hintText: 'Nhập mô tả chi tiết cho bước này...',
+              hintStyle: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
+              filled: true,
+              fillColor: const Color(0xFFFAFAFA),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppTheme.primaryOrange,
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 16, right: 12, top: 14),
+                child: Icon(
+                  Icons.description_outlined,
+                  size: 20,
+                  color: Colors.grey[400],
+                ),
+              ),
+            ),
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddButton({
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryOrange.withOpacity(0.05),
+          border: Border.all(color: AppTheme.primaryOrange, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_circle_outline,
+                color: AppTheme.primaryOrange, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.primaryOrange,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingSubmitButton() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppTheme.primaryOrange,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryOrange.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _busy ? null : _submit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
-        const SizedBox(height: 12),
-        const Text(
-          'Thêm ảnh món ăn',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Nhấn để chọn từ thư viện',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
+        child: _busy
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    widget.recipeId == null ? 'Tạo công thức' : 'Lưu thay đổi',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -706,321 +1255,10 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         return Container(
           color: Colors.grey[200],
           alignment: Alignment.center,
-          child: const Icon(Icons.broken_image_outlined, color: AppTheme.errorRed),
+          child:
+              const Icon(Icons.broken_image_outlined, color: AppTheme.errorRed),
         );
       },
-    );
-  }
-
-  Widget _buildSelectedImage(Widget child) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: child,
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: AppTheme.successGreen,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  Widget _buildPublicSwitch() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: SwitchListTile(
-        value: _isPublic,
-        onChanged: (v) => setState(() => _isPublic = v),
-        title: const Text(
-          'Công khai công thức',
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          _isPublic ? 'Mọi người có thể xem' : 'Chỉ bạn có thể xem',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-        ),
-        activeColor: AppTheme.primaryOrange,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      ),
-    );
-  }
-
-  Widget _buildIngredientRow(int index, Map<String, String> ingredient) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryOrange,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: TextEditingController(text: ingredient['name'])
-                    ..selection = TextSelection.fromPosition(
-                      TextPosition(offset: ingredient['name']?.length ?? 0),
-                    ),
-                  onChanged: (v) => _ingredients[index]['name'] = v,
-                  decoration: InputDecoration(
-                    hintText: 'Tên nguyên liệu',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-              IconButton(
-                onPressed: () => setState(() => _ingredients.removeAt(index)),
-                icon: const Icon(Icons.close, size: 20),
-                color: AppTheme.errorRed,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const SizedBox(width: 44),
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: TextEditingController(text: ingredient['quantity'])
-                    ..selection = TextSelection.fromPosition(
-                      TextPosition(offset: ingredient['quantity']?.length ?? 0),
-                    ),
-                  onChanged: (v) => _ingredients[index]['quantity'] = v,
-                  decoration: InputDecoration(
-                    hintText: 'Số lượng',
-                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: TextEditingController(text: ingredient['unit'])
-                    ..selection = TextSelection.fromPosition(
-                      TextPosition(offset: ingredient['unit']?.length ?? 0),
-                    ),
-                  onChanged: (v) => _ingredients[index]['unit'] = v,
-                  decoration: InputDecoration(
-                    hintText: 'Đơn vị',
-                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-              const SizedBox(width: 32),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstructionRow(int index, Map<String, dynamic> instruction) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryOrange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                '${index + 1}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primaryOrange,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: TextEditingController(text: instruction['description'])
-                ..selection = TextSelection.fromPosition(
-                  TextPosition(offset: instruction['description']?.length ?? 0),
-                ),
-              onChanged: (v) => _instructions[index]['description'] = v,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Mô tả bước thực hiện...',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => setState(() => _instructions.removeAt(index)),
-            icon: const Icon(Icons.close, size: 20),
-            color: AppTheme.errorRed,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddButton({
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppTheme.primaryOrange, width: 1.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.add_circle_outline,
-              color: AppTheme.primaryOrange,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppTheme.primaryOrange,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: _busy ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryOrange,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey[300],
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _busy
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        widget.recipeId == null ? Icons.add : Icons.save,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.recipeId == null ? 'Tạo công thức' : 'Lưu thay đổi',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-      ),
     );
   }
 }
