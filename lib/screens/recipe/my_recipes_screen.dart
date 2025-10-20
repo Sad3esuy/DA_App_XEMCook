@@ -5,6 +5,7 @@ import 'package:test_ui_app/theme/app_theme.dart';
 
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
+import '../favorite_screen.dart';
 
 class MyRecipesScreen extends StatefulWidget {
   const MyRecipesScreen({super.key});
@@ -178,10 +179,15 @@ class _RecipesContent extends StatelessWidget {
                 Expanded(
                   child: _CollectionCard(
                     title: 'Yêu thích',
-                    subtitle: '$favoritesCount recipes',
-                    backgroundColor: const Color.fromARGB(208, 221, 240, 232),
-                    icon: Icons.favorite,
+                    subtitle: '$favoritesCount công thức',
+                    backgroundColor: const Color(0xD0DDF0E8), // = ARGB(208,221,240,232)
+                    icon: Icons.favorite_rounded,
                     iconColor: AppTheme.primaryOrange,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -351,6 +357,7 @@ class _CollectionCard extends StatelessWidget {
     required this.backgroundColor,
     required this.icon,
     required this.iconColor,
+    this.onTap,
   });
 
   final String title;
@@ -358,65 +365,66 @@ class _CollectionCard extends StatelessWidget {
   final Color backgroundColor;
   final IconData icon;
   final Color iconColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: backgroundColor,
+    return Material(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
         borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icon bên trái
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          height: 100,
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: iconColor, size: 28),
               ),
-              child: Icon(icon, color: iconColor, size: 28),
-            ),
-            const SizedBox(width: 16),
-
-            // Phần chữ bên phải
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.black54,
-                      fontSize: 13,
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.black54,
+                        fontSize: 13,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
 
 
 class _RecipeGridCard extends StatelessWidget {
