@@ -3,15 +3,15 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Màu sắc chủ đạo
-  static const Color primaryOrange = Color(0xFFE87A47);
-  static const Color secondaryYellow = Color(0xFFFFF4E6);
+  static const Color primaryOrange = Color.fromARGB(255, 66, 107, 93);
+  static const Color secondaryYellow = Color.fromARGB(255, 245, 255, 251);
   static const Color accentGreen = Color(0xFF4A7C59);
   static const Color darkBrown = Color(0xFF5D4037);
-  static const Color lightCream = Color(0xFFFFFBF5);
+  static const Color lightCream = Color.fromARGB(255, 248, 255, 253);
   static const Color textDark = Color(0xFF2C2C2C);
   static const Color textLight = Color(0xFF757575);
   static const Color errorRed = Color(0xFFD32F2F);
-  static const Color successGreen = Color(0xFF388E3C);
+  static const Color successGreen = Color.fromARGB(255, 72, 188, 78);
 
   static ThemeData get lightTheme {
     return ThemeData(

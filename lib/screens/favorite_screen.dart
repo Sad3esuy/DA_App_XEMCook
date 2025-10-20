@@ -1,8 +1,8 @@
-import 'dart:convert';
+// import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:test_ui_app/model/user.dart';
-import 'package:test_ui_app/services/auth_service.dart';
+// import 'package:image_picker/image_picker.dart';
+// import 'package:test_ui_app/model/user.dart';
+// import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/model/recipe.dart';
@@ -161,7 +161,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Món yêu thích'),
         backgroundColor: Colors.white,

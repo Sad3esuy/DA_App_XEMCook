@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_ui_app/model/user.dart';
 import 'package:test_ui_app/services/auth_service.dart';
-import 'package:test_ui_app/services/recipe_api_service.dart';
+//import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'change_password_screen.dart';
-import 'package:test_ui_app/model/recipe.dart';
-import '../recipe/recipe_detail_screen.dart';
+// import 'package:test_ui_app/model/recipe.dart';
+// import '../recipe/recipe_detail_screen.dart';
 import '../recipe/my_recipes_screen.dart';
 import 'edit_profile_screen.dart';
 import '../auth/login_screen.dart';
@@ -15,6 +15,8 @@ import 'widget/statItem.dart';
 import 'widget/menuItem.dart';
 import 'widget/menuSection.dart';
 import '../favorite_screen.dart';
+import 'about_us_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -300,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
-        backgroundColor: Color(0xFFFF8C42),
+        backgroundColor: AppTheme.primaryOrange,
       ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
@@ -318,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SliverToBoxAdapter(
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFF8C42), // chỉ một màu
+                      color: AppTheme.primaryOrange, // chỉ một màu
                     ),
                     child: SafeArea(
                       bottom: false,
@@ -520,7 +522,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'Nội dung',
                         items: [
                           MenuItem(
-                            icon: Icons.favorite_outline,
+                            icon: Icons.favorite_border_outlined,
                             title: 'Món yêu thích',
                             onTap: () => Navigator.push(
                               context,
@@ -530,17 +532,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.menu_book_outlined,
-                            title: 'Công thức của tôi',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyRecipesScreen(),
-                              ),
-                            ),
-                          ),
-                          MenuItem(
-                            icon: Icons.mode_comment_sharp,
+                            icon: Icons.mode_comment_outlined,
                             title: 'Đánh giá của tôi',
                             onTap: () => Navigator.push(
                               context,
@@ -556,7 +548,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: 'Cài đặt hệ thống',
                         items: [
                           MenuItem(
-                            icon: Icons.language_sharp,
+                            icon: Icons.language_outlined,
                             title: 'Ngôn ngữ',
                             onTap: () => Navigator.push(
                               context,
@@ -566,7 +558,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.brightness_4,
+                            icon: Icons.brightness_4_outlined,
                             title: 'Giao diện',
                             onTap: () => Navigator.push(
                               context,
@@ -576,12 +568,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           MenuItem(
-                            icon: Icons.circle_notifications_sharp,
+                            icon: Icons.circle_notifications_outlined,
                             title: 'Thông báo',
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const MyRecipesScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      MenuSection(
+                        title: 'Thông tin',
+                        items: [
+                          MenuItem(
+                            icon: Icons.info_outlined,
+                            title: 'Về chúng tôi',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AboutUsScreen(),
+                              ),
+                            ),
+                          ),
+                          MenuItem(
+                            icon: Icons.policy_outlined,
+                            title: 'chính sách bảo mật',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PrivacyPolicyScreen(),
                               ),
                             ),
                           ),
@@ -628,4 +646,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
