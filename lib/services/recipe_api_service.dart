@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/recipe.dart';
 import '../model/home_feed.dart';
+import '../model/collection.dart';
 
 class RecipeApiService {
   static const String baseUrl = "http://10.0.2.2:5000/api/recipes";
@@ -526,6 +527,151 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
       throw Exception('$msg (status: ${res.statusCode})');
     } catch (_) {
       throw Exception('Failed to update recipe (status: ${res.statusCode})');
+    }
+  }
+
+  // ============================================
+  // COLLECTION API METHODS
+  // ============================================
+
+  /// GET all collections of current user
+  static Future<List<Collection>> getMyCollections({int page = 1, int limit = 20}) async {
+    try {
+      final uri = Uri.parse("$baseUrl/collections").replace(queryParameters: {
+        'page': page.toString(),
+        'limit': limit.toString(),
+      });
+      final response = await http.get(uri, headers: await _authHeaders());
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        final List<dynamic> data = body['data'] ?? [];
+        return data.map((e) => Collection.fromJson(e)).toList();
+      }
+      throw Exception('Failed to load collections (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error fetching collections: $e');
+    }
+  }
+
+  /// GET collection detail by ID
+  static Future<Collection> getCollectionById(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/collections/$id"),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        return Collection.fromJson(body['data']);
+      }
+      throw Exception('Failed to load collection (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error fetching collection: $e');
+    }
+  }
+
+  /// POST create new collection
+  static Future<Collection> createCollection({
+    required String name,
+    String? description,
+    bool isPublic = false,
+  }) async {
+    try {
+      final body = {
+        'name': name,
+        'description': description ?? '',
+        'isPublic': isPublic,
+      };
+      final response = await http.post(
+        Uri.parse("$baseUrl/collections"),
+        headers: await _authHeaders(),
+        body: json.encode(body),
+      );
+      if (response.statusCode == 201) {
+        final responseBody = json.decode(response.body);
+        return Collection.fromJson(responseBody['data']);
+      }
+      throw Exception('Failed to create collection (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error creating collection: $e');
+    }
+  }
+
+  /// PUT update collection
+  static Future<Collection> updateCollection(
+    String id, {
+    String? name,
+    String? description,
+    bool? isPublic,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (isPublic != null) 'isPublic': isPublic,
+      };
+      final response = await http.put(
+        Uri.parse("$baseUrl/collections/$id"),
+        headers: await _authHeaders(),
+        body: json.encode(body),
+      );
+      if (response.statusCode == 200) {
+        final responseBody = json.decode(response.body);
+        return Collection.fromJson(responseBody['data']);
+      }
+      throw Exception('Failed to update collection (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error updating collection: $e');
+    }
+  }
+
+  /// DELETE collection
+  static Future<bool> deleteCollection(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse("$baseUrl/collections/$id"),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode == 200) {
+        return true;
+      }
+      throw Exception('Failed to delete collection (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error deleting collection: $e');
+    }
+  }
+
+  /// POST add recipe to collection
+  static Future<bool> addRecipeToCollection(String collectionId, String recipeId) async {
+    try {
+      final body = {'recipeId': recipeId};
+      final response = await http.post(
+        Uri.parse("$baseUrl/collections/$collectionId/recipes"),
+        headers: await _authHeaders(),
+        body: json.encode(body),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return true;
+      }
+      throw Exception('Failed to add recipe to collection (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error adding recipe to collection: $e');
+    }
+  }
+
+  /// DELETE remove recipe from collection
+  static Future<bool> removeRecipeFromCollection(String collectionId, String recipeId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse("$baseUrl/collections/$collectionId/recipes/$recipeId"),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode == 200) {
+        return true;
+      }
+      throw Exception('Failed to remove recipe from collection (status: ${response.statusCode})');
+    } catch (e) {
+      throw Exception('Error removing recipe from collection: $e');
     }
   }
 }
