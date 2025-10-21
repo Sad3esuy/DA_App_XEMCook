@@ -14,7 +14,7 @@ import '../auth/login_screen.dart';
 import 'widget/statItem.dart';
 import 'widget/menuItem.dart';
 import 'widget/menuSection.dart';
-import '../favorite_screen.dart';
+import '../recipe/favorite_screen.dart';
 import 'about_us_screen.dart';
 import 'privacy_policy_screen.dart';
 

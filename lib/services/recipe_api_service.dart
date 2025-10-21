@@ -296,54 +296,72 @@ class RecipeApiService {
     }
   }
 
-  /// GET current user's favorites (list of recipes)
-  static Future<List<Recipe>> getFavorites(
-      {int page = 1, int limit = 20}) async {
-    try {
-      final uri = Uri.parse("$baseUrl/favorites").replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      });
-      final response = await http.get(uri, headers: await _authHeaders());
-      if (response.statusCode == 200) {
-        final body = json.decode(response.body);
-        final List<dynamic> rows = body['data'] ?? [];
-        // API trả Favorite rows, map sang recipe
-        final recipes = <Recipe>[];
-        for (final row in rows) {
-          final r = row['recipe'];
-          if (r != null) {
-            final mapped = {
-              'id': r['id']?.toString() ?? '',
-              'title': r['title'] ?? '',
-              'description': r['description'] ?? '',
-              'prepTime': r['prepTime'] ?? 0,
-              'cookTime': r['cookTime'] ?? 0,
-              'servings': r['servings'] ?? 1,
-              'difficulty': r['difficulty'] ?? 'medium',
-              'category': r['category'] ?? 'other',
-              'imageUrl': r['imageUrl'] ?? '',
-              'isFavorite': true,
-              'tags': r['tags'] ?? <String>[],
-              'nutrition': r['nutrition'] ?? <String, dynamic>{},
-              'createdAt': r['createdAt'] ?? DateTime.now().toIso8601String(),
-              'updatedAt': r['updatedAt'] ??
-                  (r['createdAt'] ?? DateTime.now().toIso8601String()),
-              'ingredients': <dynamic>[],
-              'instructions': <dynamic>[],
-            };
-            recipes.add(Recipe.fromJson(mapped));
-          }
-        }
-        return recipes;
-      } else {
-        throw Exception(
-            "Failed to load favorites (status: ${response.statusCode})");
-      }
-    } catch (e) {
-      throw Exception("Error fetching favorites: $e");
+/// GET current user's favorites (list of recipes) + lấy thêm authorName, authorAvatar
+static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
+  try {
+    final uri = Uri.parse("$baseUrl/favorites").replace(queryParameters: {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    });
+    final response = await http.get(uri, headers: await _authHeaders());
+
+    if (response.statusCode != 200) {
+      throw Exception("Failed to load favorites (status: ${response.statusCode})");
     }
+
+    final body = json.decode(response.body) as Map<String, dynamic>? ?? {};
+    final List<dynamic> rows = body['data'] ?? [];
+    final recipes = <Recipe>[];
+
+    for (final row in rows) {
+      final r = (row is Map<String, dynamic>) ? row['recipe'] : null;
+      if (r == null) continue;
+
+      // Lấy thông tin tác giả nếu có
+      final dynamic author = r['author'] ?? r['user'] ?? r['createdBy'];
+      String authorName = '';
+      String authorAvatar = '';
+
+      if (author is Map<String, dynamic>) {
+        authorName = author['name'] ?? author['fullName'] ?? author['username'] ?? '';
+        authorAvatar = author['avatarUrl'] ?? author['avatar'] ?? author['photo'] ?? '';
+      }
+
+      // Gộp vào map của recipe
+      final mapped = {
+        'id': r['id']?.toString() ?? '',
+        'title': r['title'] ?? '',
+        'description': r['description'] ?? '',
+        'prepTime': r['prepTime'] ?? 0,
+        'cookTime': r['cookTime'] ?? 0,
+        'servings': r['servings'] ?? 1,
+        'difficulty': r['difficulty'] ?? 'medium',
+        'category': r['category'] ?? 'other',
+        'imageUrl': r['imageUrl'] ?? '',
+        'isFavorite': true,
+        'isPublic': r['isPublic'] ?? true,
+        'tags': (r['tags'] is List) ? List<String>.from(r['tags']) : <String>[],
+        'nutrition': (r['nutrition'] is Map)
+            ? Map<String, dynamic>.from(r['nutrition'])
+            : <String, dynamic>{},
+        'createdAt': r['createdAt'] ?? DateTime.now().toIso8601String(),
+        'updatedAt': r['updatedAt'] ?? r['createdAt'] ?? DateTime.now().toIso8601String(),
+        'ingredients': (r['ingredients'] is List) ? r['ingredients'] : <dynamic>[],
+        'instructions': (r['instructions'] is List) ? r['instructions'] : <dynamic>[],
+        // ⭐️ Thêm 2 trường mới
+        'authorName': authorName,
+        'authorAvatar': authorAvatar,
+      };
+
+      recipes.add(Recipe.fromJson(mapped));
+    }
+
+    return recipes;
+  } catch (e) {
+    throw Exception("Error fetching favorites: $e");
   }
+}
+
 
   /// POST rate a recipe
   static Future<Map<String, dynamic>> rateRecipe(String id, int rating,

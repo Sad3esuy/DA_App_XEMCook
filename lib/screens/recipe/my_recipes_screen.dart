@@ -5,7 +5,7 @@ import 'package:test_ui_app/theme/app_theme.dart';
 
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
-import '../favorite_screen.dart';
+import 'favorite_screen.dart';
 
 class MyRecipesScreen extends StatefulWidget {
   const MyRecipesScreen({super.key});
