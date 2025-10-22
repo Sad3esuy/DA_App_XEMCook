@@ -4,7 +4,7 @@ import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/widgets/recipe_card.dart';
-import 'recipe_detail_screen.dart';
+import '../recipe_detail_screen.dart';
 import 'create_collection_screen.dart';
 
 class CollectionDetailScreen extends StatefulWidget {
@@ -163,24 +163,46 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Xoá bộ sưu tập?'),
-        content:
-            Text('Bạn có chắc muốn xoá bộ sưu tập "${_collection!.name}"?'),
-        actions: [
-          TextButton(
+builder: (context) => AlertDialog(
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  title: const Text('Xoá bộ sưu tập?'),
+  content: Text('Bạn có chắc muốn xoá bộ sưu tập "${_collection!.name}"?'),
+  actions: [
+    Row(
+      children: [
+        Expanded(
+          child: TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+              foregroundColor: Colors.black87,
+              overlayColor: Colors.grey.withOpacity(0.2),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: const Text('Huỷ'),
           ),
-          FilledButton(
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppTheme.errorRed,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Xoá'),
           ),
-        ],
-      ),
+        ),
+      ],
+    ),
+  ],
+),
     );
 
     if (confirmed == true && mounted) {
@@ -205,24 +227,48 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   Future<void> _removeRecipe(Recipe recipe) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Xoá ra khỏi bộ sưu tập?'),
-        content:
-            Text('Bạn có chắc muốn xoá "${recipe.title}" khỏi bộ sưu tập này?'),
-        actions: [
-          TextButton(
+builder: (context) => AlertDialog(
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+  title: const Text('Xoá công thức khỏi bộ sưu tập?'),
+  content: Text(
+    'Bạn có chắc muốn xoá "${recipe.title}" khỏi bộ sưu tập này?',
+  ),
+  actions: [
+    Row(
+      children: [
+        Expanded(
+          child: TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+              foregroundColor: Colors.black87,
+              overlayColor: Colors.grey.withOpacity(0.2),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             child: const Text('Huỷ'),
           ),
-          FilledButton(
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
               backgroundColor: AppTheme.errorRed,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Xoá'),
           ),
-        ],
-      ),
+        ),
+      ],
+    ),
+  ],
+),
     );
 
     if (confirmed == true && mounted) {

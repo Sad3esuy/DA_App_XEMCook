@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../model/collection.dart';
-import '../../services/recipe_api_service.dart';
-import '../../theme/app_theme.dart';
+import '../../../model/collection.dart';
+import '../../../services/recipe_api_service.dart';
+import '../../../theme/app_theme.dart';
 
 class CreateCollectionScreen extends StatefulWidget {
   const CreateCollectionScreen({super.key, this.collection});
@@ -147,23 +147,18 @@ class _CreateCollectionScreenState extends State<CreateCollectionScreen> {
               autofocus: !_isEditMode,
               decoration: InputDecoration(
                 hintText: 'Ví dụ: Món ăn sáng yêu thích',
-                hintStyle: TextStyle(
-                  color: AppTheme.textLight.withOpacity(0.6),
-                  fontSize: 15,
-                ),
-                filled: true,
-                fillColor: AppTheme.lightCream,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppTheme.primaryOrange,
-                    width: 2,
-                  ),
-                ),
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(
@@ -171,11 +166,9 @@ class _CreateCollectionScreenState extends State<CreateCollectionScreen> {
                     width: 1,
                   ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Vui lòng nhập tên bộ sưu tập';
@@ -204,28 +197,20 @@ class _CreateCollectionScreenState extends State<CreateCollectionScreen> {
               maxLines: 4,
               decoration: InputDecoration(
                 hintText: 'Thêm mô tả ngắn về bộ sưu tập này...',
-                hintStyle: TextStyle(
-                  color: AppTheme.textLight.withOpacity(0.6),
-                  fontSize: 15,
-                ),
-                filled: true,
-                fillColor: AppTheme.lightCream,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: AppTheme.primaryOrange,
-                    width: 2,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
             ),
 
             const SizedBox(height: 24),
@@ -233,7 +218,7 @@ class _CreateCollectionScreenState extends State<CreateCollectionScreen> {
             // Privacy Toggle
             Container(
               decoration: BoxDecoration(
-                color: AppTheme.lightCream,
+                color: const Color(0xFFF8F9FA),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: SwitchListTile(
@@ -268,29 +253,6 @@ class _CreateCollectionScreenState extends State<CreateCollectionScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Help Text
-            Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 16,
-                  color: AppTheme.textLight,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Bạn có thể thêm công thức vào bộ sưu tập sau khi tạo',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textLight,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),

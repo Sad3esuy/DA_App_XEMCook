@@ -266,22 +266,44 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Xoá công thức'),
         content: const Text('Bạn chắc chắn muốn xoá công thức này?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Huỷ')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorRed,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+                    foregroundColor: Colors.black87,
+                    overlayColor: Colors.grey.withOpacity(0.2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Huỷ'),
+                ),
               ),
-            ),
-            child: const Text('Xoá'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.errorRed,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Xoá'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -385,7 +407,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_outlined, color: Colors.black87),
+                      icon: const Icon(Icons.arrow_back_outlined,
+                          color: Colors.black87),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -556,8 +579,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primaryOrange
-                                        .withOpacity(0.1),
+                                    color:
+                                        AppTheme.primaryOrange.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -593,7 +616,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             _SectionCard(
                               icon: Icons.health_and_safety_outlined,
                               title: 'Giá trị dinh dưỡng',
-                              child: _NutritionGrid(nutrition: recipe.nutrition),
+                              child:
+                                  _NutritionGrid(nutrition: recipe.nutrition),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -611,8 +635,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     onPressed: (recipe.ingredients.isEmpty ||
                                             _addingToShoppingList)
                                         ? null
-                                        : () =>
-                                            _addIngredientsToShoppingList(recipe),
+                                        : () => _addIngredientsToShoppingList(
+                                            recipe),
                                     icon: Icon(
                                       _addingToShoppingList
                                           ? Icons.hourglass_empty
@@ -768,8 +792,9 @@ class _AuthorBanner extends StatelessWidget {
         CircleAvatar(
           radius: 22,
           backgroundColor: AppTheme.primaryOrange.withOpacity(0.2),
-          backgroundImage:
-              (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
+          backgroundImage: (avatar != null && avatar.isNotEmpty)
+              ? NetworkImage(avatar)
+              : null,
           child: (avatar == null || avatar.isEmpty)
               ? Text(
                   displayName.substring(0, 1).toUpperCase(),
@@ -1181,7 +1206,8 @@ class _RatingCommentTile extends StatelessWidget {
               Row(
                 children: List.generate(5, (index) {
                   if (index < ratingValue) {
-                    return const Icon(Icons.star, size: 16, color: Colors.amber);
+                    return const Icon(Icons.star,
+                        size: 16, color: Colors.amber);
                   }
                   return const Icon(Icons.star_border,
                       size: 16, color: Colors.amber);
