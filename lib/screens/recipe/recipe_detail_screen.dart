@@ -3,6 +3,7 @@ import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
+import 'package:test_ui_app/screens/recipe/collection/add_recipe_to_collection_sheet.dart';
 import 'package:test_ui_app/screens/recipe/recipe_form_screen.dart';
 import 'package:test_ui_app/model/shopping_item.dart';
 import 'package:test_ui_app/services/shopping_list_service.dart';
@@ -117,6 +118,28 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         ..write(description);
     }
     await Share.share(buffer.toString());
+  }
+
+  Future<void> _openAddToCollectionSheet(Recipe recipe) async {
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => AddRecipeToCollectionSheet(
+        recipeId: recipe.id,
+        recipeTitle: recipe.title,
+      ),
+    );
+    if (!mounted) return;
+    if (added == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã thêm công thức vào bộ sưu tập'),
+        ),
+      );
+    }
   }
 
   Future<void> _addIngredientsToShoppingList(Recipe recipe) async {
@@ -423,6 +446,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         tooltip: 'Chia sẻ',
                         onPressed: () => _shareRecipe(recipe),
                         icon: const Icon(Icons.share_outlined,
+                            color: AppTheme.primaryOrange),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        tooltip: 'Thêm vào bộ sưu tập',
+                        onPressed: () => _openAddToCollectionSheet(recipe),
+                        icon: const Icon(Icons.bookmark_add_outlined,
                             color: AppTheme.primaryOrange),
                       ),
                     ),
