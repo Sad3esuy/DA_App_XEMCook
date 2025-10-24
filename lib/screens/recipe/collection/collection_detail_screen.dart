@@ -428,23 +428,32 @@ builder: (context) => AlertDialog(
               onToggleFavorite: () => _toggleFavorite(recipe),
             ),
             Positioned(
-              top: 8,
-              right: 8,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+              top: 4,
+              right: 4,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _removeRecipe(recipe),
                   borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.remove_circle,
-                      color: AppTheme.errorRed, size: 24),
-                  onPressed: () => _removeRecipe(recipe),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.close_outlined,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
-                  tooltip: 'Xoá khỏi bộ sưu tập',
                 ),
               ),
             ),
