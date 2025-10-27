@@ -5,8 +5,7 @@ import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/screens/recipe/collection/add_recipe_to_collection_sheet.dart';
 import 'package:test_ui_app/screens/recipe/recipe_form_screen.dart';
-import 'package:test_ui_app/model/shopping_item.dart';
-import 'package:test_ui_app/services/shopping_list_service.dart';
+import 'package:test_ui_app/screens/shopping/add_to_list_bottom_sheet.dart';
 import 'package:share_plus/share_plus.dart';
 
 String _difficultyLabel(String value) {
@@ -100,7 +99,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     setState(() {
       _future = RecipeApiService.getRecipeById(widget.recipeId);
     });
-    await _future.catchError((_) {});
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   Future<void> _loadCurrentUser() async {
@@ -148,35 +149,31 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Không có nguyên liệu để thêm vào danh sách mua sắm')),
+            content: Text('Không có nguyên liệu để thêm vào danh sách mua sắm'),
+          ),
         );
       }
       return;
     }
 
     setState(() => _addingToShoppingList = true);
-    try {
-      final items = recipe.ingredients
-          .map((ingredient) => ShoppingItem.fromIngredient(ingredient,
-              recipeTitle: recipe.title))
-          .toList();
-      await ShoppingListService.instance.addItems(items);
-      if (mounted) {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => AddToShoppingListSheet(recipe: recipe),
+    );
+    if (mounted) {
+      setState(() => _addingToShoppingList = false);
+      if (result == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  'Đã thêm ${items.length} nguyên liệu vào danh sách mua sắm')),
+            content: Text('Đã thêm nguyên liệu từ "${recipe.title}" vào danh sách'),
+          ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể thêm vào danh sách: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _addingToShoppingList = false);
     }
   }
 
