@@ -36,6 +36,7 @@ class CategoryRecipesScreen extends StatelessWidget {
         initialDietTags: normalizedTags,
         initialTags: normalizedTags,
         initialTimeframe: timeframe,
+        timeframeTarget: _resolveTimeframeTarget(),
         initialSort: sort,
         initialSearch: hasSearch ? searchText : null,
         enableSearch: hasSearch,
@@ -80,6 +81,17 @@ class CategoryRecipesScreen extends StatelessWidget {
       return 'week';
     }
     return 'all';
+  }
+
+  String? _resolveTimeframeTarget() {
+    final hint = _normalize(tagHint);
+    if (hint == 'popular') {
+      return 'views';
+    }
+    if (hint == 'new') {
+      return 'recipes';
+    }
+    return null;
   }
 
   bool _isQuickFilterKeyword(String value) {
