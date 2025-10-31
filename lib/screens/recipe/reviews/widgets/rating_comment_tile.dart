@@ -118,6 +118,10 @@ class _RatingCommentTileState extends State<RatingCommentTile> {
     final rawName = reviewer['fullName']?.toString().trim();
     final displayName =
         (rawName != null && rawName.isNotEmpty) ? rawName : 'Người dùng';
+    final rawAvatar = reviewer['avatar']?.toString().trim() ?? '';
+    final avatarUrl = rawAvatar.isNotEmpty 
+        ? RecipeApiService.resolveImageUrl(rawAvatar)
+        : '';
     final ratingValue = (widget.data['rating'] is num)
         ? (widget.data['rating'] as num).toInt().clamp(0, 5)
         : 0;
@@ -145,13 +149,18 @@ class _RatingCommentTileState extends State<RatingCommentTile> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: AppTheme.secondaryYellow.withOpacity(0.3),
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
-                ),
+                backgroundImage: avatarUrl.isNotEmpty 
+                    ? NetworkImage(avatarUrl) 
+                    : null,
+                child: avatarUrl.isEmpty
+                    ? Text(
+                        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryOrange,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(

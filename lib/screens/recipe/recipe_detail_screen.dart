@@ -184,20 +184,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   /// Kiểm tra xem user hiện tại đã đánh giá công thức này chưa
   Map<String, dynamic>? _getUserRating(Recipe recipe) {
     if (_currentUserId == null) return null;
-    
+
     for (final rating in recipe.ratings) {
       final reviewer = rating['reviewer'];
       String? reviewerId;
-      
+
       if (reviewer is Map) {
         reviewerId = reviewer['_id']?.toString() ?? reviewer['id']?.toString();
       }
-      
+
       if (reviewerId == _currentUserId) {
         return rating;
       }
     }
-    
+
     return null;
   }
 
@@ -206,7 +206,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     // Kiểm tra xem user đã đánh giá chưa
     final existingRating = _getUserRating(recipe);
-    
+
     if (existingRating != null) {
       // Đã đánh giá → chuyển đến màn hình reviews
       await _openReviewsScreen(recipe);
@@ -624,8 +624,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   ),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                      color:
-                                          AppTheme.primaryOrange.withOpacity(0.2)),
+                                      color: AppTheme.primaryOrange
+                                          .withOpacity(0.2)),
                                 ),
                                 child: Column(
                                   children: [
@@ -660,8 +660,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                         onPressed: _busy
                                             ? null
                                             : () => _openRateForm(recipe),
-                                        icon: const Icon(Icons.star_rate_rounded),
-                                        label: const Text('Viết đánh giá đầu tiên'),
+                                        icon:
+                                            const Icon(Icons.star_rate_rounded),
+                                        label: const Text(
+                                            'Viết đánh giá đầu tiên'),
                                         style: ElevatedButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(
                                               vertical: 12),
@@ -861,13 +863,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             builder: (context) {
                               final previewImages = _ratingPreviewUrls(recipe);
 
-                              final extraCount =
-                                  (recipe.totalRatingImages - previewImages.length)
-                                      .clamp(0, 999);
+                              final extraCount = (recipe.totalRatingImages -
+                                      previewImages.length)
+                                  .clamp(0, 999);
 
                               // Logic cho nút trailing
-                              final showRateButton = recipe.ratings.isEmpty && !canManage;
-                              final buttonText = showRateButton ? 'Đánh giá' : 'Xem tất cả';
+                              final showRateButton =
+                                  recipe.ratings.isEmpty && !canManage;
+                              final buttonText =
+                                  showRateButton ? 'Đánh giá' : 'Xem tất cả';
                               final buttonAction = showRateButton
                                   ? () => _openRateForm(recipe)
                                   : () => _openReviewsScreen(recipe);
@@ -899,7 +903,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                                     .bodyLarge
                                                     ?.copyWith(
                                                       color: AppTheme.textLight,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                               ),
                                             ],
@@ -918,85 +923,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                                 ?.copyWith(
                                                     color: AppTheme.textLight),
                                           ),
-                                          if (previewImages.isNotEmpty) ...[
-                                            const SizedBox(height: 16),
-                                            SizedBox(
-                                              height: 88,
-                                              child: ListView.separated(
-                                                scrollDirection: Axis.horizontal,
-                                                itemCount: previewImages.length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(width: 8),
-                                                itemBuilder: (context, index) {
-                                                  final url =
-                                                      previewImages[index];
-
-                                                  final isLast = index ==
-                                                          previewImages.length -
-                                                              1 &&
-                                                      extraCount > 0;
-
-                                                  return Stack(
-                                                    children: [
-                                                      ClipRRect(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                                12),
-                                                        child: Image.network(
-                                                          url,
-                                                          width: 88,
-                                                          height: 88,
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder:
-                                                              (_, __, ___) =>
-                                                                  Container(
-                                                            width: 88,
-                                                            height: 88,
-                                                            alignment: Alignment
-                                                                .center,
-                                                            color: Colors
-                                                                .grey.shade200,
-                                                            child: const Icon(Icons
-                                                                .broken_image_outlined),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      if (isLast)
-                                                        Container(
-                                                          width: 88,
-                                                          height: 88,
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: Colors.black
-                                                                .withOpacity(
-                                                                    0.4),
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        12),
-                                                          ),
-                                                          alignment:
-                                                              Alignment.center,
-                                                          child: Text(
-                                                            '+$extraCount',
-                                                            style: Theme.of(
-                                                                    context)
-                                                                .textTheme
-                                                                .titleMedium
-                                                                ?.copyWith(
-                                                                    color: Colors
-                                                                        .white,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold),
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
                                           const SizedBox(height: 16),
                                           ...recipe.ratings
                                               .take(2)
