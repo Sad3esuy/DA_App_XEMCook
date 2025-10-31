@@ -739,7 +739,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         if (recipe.description.trim().isNotEmpty) ...[
                           _SectionTitle(title: 'Mô tả'),
                           const SizedBox(height: 12),
-                          _ExpandableDescription(description: recipe.description),
+                          _ExpandableDescription(
+                              description: recipe.description),
                           const SizedBox(height: 32),
                         ],
 
@@ -782,6 +783,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     .titleMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w600,
+                                      color:
+                                          const Color.fromARGB(221, 60, 60, 60),
                                     ),
                               ),
                               Row(
@@ -908,38 +911,51 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         // Add to Shopping List Button
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton.icon(
+                          child: OutlinedButton.icon(
                             onPressed: (recipe.ingredients.isEmpty ||
                                     _addingToShoppingList)
                                 ? null
                                 : () => _addIngredientsToShoppingList(recipe),
                             icon: _addingToShoppingList
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: 18,
+                                    height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                          AppTheme.accentGreen),
                                     ),
                                   )
-                                : const Icon(Icons.add_shopping_cart_outlined),
+                                : const Icon(Icons.add_shopping_cart_outlined,
+                                    size: 20),
                             label: Text(
                               _addingToShoppingList
                                   ? 'Đang thêm...'
                                   : 'Thêm vào danh sách mua sắm',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _addingToShoppingList
+                                    ? Colors.grey.shade500
+                                    : AppTheme.accentGreen,
+                              ),
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.accentGreen,
-                              foregroundColor: Colors.white,
+                            style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: BorderSide(
+                                color: AppTheme.accentGreen,
+                                width: 1.5,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              elevation: 0,
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppTheme.accentGreen,
+                              overlayColor:
+                                  AppTheme.accentGreen.withOpacity(0.08),
                             ),
                           ),
                         ),
+
                         const SizedBox(height: 32),
 
                         // Instructions
@@ -995,6 +1011,54 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           );
                         }).toList(),
                         const SizedBox(height: 32),
+
+                        // Final Result Image
+                        if (recipe.imageUrl.isNotEmpty) ...[
+                          _SectionTitle(title: 'Thành phẩm'),
+                          const SizedBox(height: 16),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Image.network(
+                                recipe.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stack) =>
+                                    Container(
+                                  color: Colors.grey.shade100,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.broken_image_outlined,
+                                      size: 60,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  ),
+                                ),
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: Colors.grey.shade100,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                        color: AppTheme.primaryOrange,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         // Reviews Section
                         _SectionTitle(
@@ -1289,13 +1353,15 @@ class _ServingsButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: enabled ? AppTheme.primaryOrange : Colors.grey.shade300,
+          color: enabled
+              ? const Color.fromARGB(208, 221, 240, 232)
+              : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
           size: 20,
-          color: Colors.white,
+          color: AppTheme.primaryOrange,
         ),
       ),
     );
@@ -1546,7 +1612,7 @@ class _ExpandableDescriptionState extends State<_ExpandableDescription> {
       textDirection: TextDirection.ltr,
     );
     tp.layout(maxWidth: MediaQuery.of(context).size.width - 48);
-    
+
     if (mounted) {
       setState(() {
         _showReadMore = tp.didExceedMaxLines;
@@ -1621,7 +1687,7 @@ class _ExpandableDescriptionState extends State<_ExpandableDescription> {
 
         final endOffset = endPosition.offset;
         String displayText = widget.description;
-        
+
         if (endOffset < widget.description.length) {
           displayText = widget.description.substring(0, endOffset - 12);
           if (displayText.endsWith(' ')) {
@@ -1678,12 +1744,6 @@ class _EmptyReviews extends StatelessWidget {
         child: Center(
           child: Column(
             children: [
-              Icon(
-                Icons.rate_review_outlined,
-                size: 56,
-                color: Colors.grey.shade300,
-              ),
-              const SizedBox(height: 16),
               Text(
                 'Chưa có đánh giá',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
