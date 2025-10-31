@@ -601,7 +601,30 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             difficultyColor: difficultyColor,
                           ),
                           const SizedBox(height: 20),
+                          // Mô tả
+                          _SectionCard(
+                            icon: Icons.description_outlined,
+                            title: 'Mô tả',
+                            child: Text(
+                              recipe.description,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(height: 1.6),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
 
+                          // Dinh dưỡng
+                          if (recipe.nutrition.isNotEmpty) ...[
+                            _SectionCard(
+                              icon: Icons.health_and_safety_outlined,
+                              title: 'Giá trị dinh dưỡng',
+                              child:
+                                  _NutritionGrid(nutrition: recipe.nutrition),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                           // Rating summary - Chỉ hiển thị nếu không phải công thức của user
                           if (!canManage) ...[
                             if (_avg > 0 || _total > 0)
@@ -616,12 +639,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppTheme.primaryOrange.withOpacity(0.1),
-                                      AppTheme.secondaryYellow.withOpacity(0.1),
-                                    ],
-                                  ),
+                                  color: const Color.fromARGB(208, 221, 240, 232).withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                       color: AppTheme.primaryOrange
@@ -677,59 +695,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   ],
                                 ),
                               ),
-                            const SizedBox(height: 20),
-                          ],
-
-                          // Tags
-                          if (recipe.tags.isNotEmpty) ...[
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: recipe.tags.map((t) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        AppTheme.primaryOrange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    '#$t',
-                                    style: const TextStyle(
-                                      color: AppTheme.primaryOrange,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Mô tả
-                          _SectionCard(
-                            icon: Icons.description_outlined,
-                            title: 'Mô tả',
-                            child: Text(
-                              recipe.description,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(height: 1.6),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Dinh dưỡng
-                          if (recipe.nutrition.isNotEmpty) ...[
-                            _SectionCard(
-                              icon: Icons.health_and_safety_outlined,
-                              title: 'Giá trị dinh dưỡng',
-                              child:
-                                  _NutritionGrid(nutrition: recipe.nutrition),
-                            ),
                             const SizedBox(height: 16),
                           ],
 
@@ -949,6 +914,41 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               );
                             },
                           ),
+                          const SizedBox(height: 24),           // Tags
+                          if (recipe.tags.isNotEmpty) ...[
+                            const Text(
+                              'Tags',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: recipe.tags.map((t) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        AppTheme.primaryOrange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '#$t',
+                                    style: const TextStyle(
+                                      color: AppTheme.primaryOrange,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -1143,14 +1143,9 @@ class _RatingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),      
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryOrange.withOpacity(0.1),
-            AppTheme.secondaryYellow.withOpacity(0.1),
-          ],
-        ),
+        color: const Color.fromARGB(208, 221, 240, 232).withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.2)),
       ),
