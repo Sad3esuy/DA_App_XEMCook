@@ -28,6 +28,8 @@ class Recipe {
   final List<Ingredient> ingredients;
   final List<Instruction> instructions;
   final List<Map<String, dynamic>> ratings;
+  final int totalRatingImages;
+  final List<Map<String, dynamic>> ratingImagesPreview;
 
   Recipe({
     required this.id,
@@ -55,6 +57,8 @@ class Recipe {
     required this.ingredients,
     required this.instructions,
     this.ratings = const <Map<String, dynamic>>[],
+    this.totalRatingImages = 0,
+    this.ratingImagesPreview = const <Map<String, dynamic>>[],
   });
 
   /// Chuyển từ JSON sang object Recipe
@@ -90,8 +94,35 @@ class Recipe {
           .map((e) => Instruction.fromJson(e))
           .toList(),
       ratings: (json['ratings'] as List<dynamic>? ?? const [])
-          .map((e) => Map<String, dynamic>.from(e as Map))
+          .map((e) {
+            if (e is Map<String, dynamic>) {
+              return Map<String, dynamic>.from(e);
+            }
+            if (e is Map) {
+              return Map<String, dynamic>.from(e as Map);
+            }
+            return <String, dynamic>{};
+          })
+          .where((map) => map.isNotEmpty)
           .toList(),
+      totalRatingImages: _parseInt(json['totalRatingImages']),
+      ratingImagesPreview:
+          (json['ratingImagesPreview'] as List<dynamic>? ?? const [])
+              .map((item) {
+                if (item is Map<String, dynamic>) {
+                  return Map<String, dynamic>.from(item);
+                }
+                if (item is Map) {
+                  return Map<String, dynamic>.from(item as Map);
+                }
+                if (item is String) {
+                  final value = item.trim();
+                  return value.isEmpty ? null : {'url': value};
+                }
+                return null;
+              })
+              .whereType<Map<String, dynamic>>()
+              .toList(),
     );
   }
 
@@ -144,6 +175,8 @@ class Recipe {
       'ingredients': ingredients.map((e) => e.toJson()).toList(),
       'instructions': instructions.map((e) => e.toJson()).toList(),
       'ratings': ratings,
+      'totalRatingImages': totalRatingImages,
+      'ratingImagesPreview': ratingImagesPreview,
     };
   }
 
