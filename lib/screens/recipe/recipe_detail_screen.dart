@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_ui_app/model/ingredient.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
@@ -90,6 +91,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   int _total = 0;
   String? _currentUserId;
   bool _addingToShoppingList = false;
+  int? _servingsOverride;
 
   @override
   void initState() {
@@ -166,7 +168,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => AddToShoppingListSheet(recipe: recipe),
+      builder: (_) => AddToShoppingListSheet(
+        recipe: recipe,
+        initialServings: _resolveCurrentServings(recipe).toDouble(),
+      ),
     );
     if (mounted) {
       setState(() => _addingToShoppingList = false);
@@ -179,6 +184,144 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         );
       }
     }
+  }
+
+  int _resolveCurrentServings(Recipe recipe) {
+    final base = recipe.servings > 0 ? recipe.servings : 1;
+    final override = _servingsOverride;
+    if (override == null || override <= 0) return base;
+    return override;
+  }
+
+  void _changeServings(Recipe recipe, int delta) {
+    final base = recipe.servings > 0 ? recipe.servings : 1;
+    final current = _resolveCurrentServings(recipe);
+    var next = current + delta;
+    if (next < 1) next = 1;
+    if (next > 200) next = 200;
+    if (next == current) return;
+    setState(() {
+      _servingsOverride = next == base ? null : next;
+    });
+  }
+
+  double _servingsMultiplier(Recipe recipe) {
+    final base = recipe.servings > 0 ? recipe.servings : 1;
+    final current = _resolveCurrentServings(recipe);
+    if (base <= 0) return 1;
+    return current / base;
+  }
+
+  double? _parseQuantityValue(String quantity) {
+    final raw = quantity.trim();
+    if (raw.isEmpty) return null;
+    final normalized = raw.replaceAll(',', '.');
+
+    final mixedMatch =
+        RegExp(r'^(\d+)\s+(\d+)\s*/\s*(\d+)$').firstMatch(normalized);
+    if (mixedMatch != null) {
+      final whole = double.tryParse(mixedMatch.group(1)!);
+      final numerator = double.tryParse(mixedMatch.group(2)!);
+      final denominator = double.tryParse(mixedMatch.group(3)!);
+      if (whole != null && numerator != null && denominator != null) {
+        if (denominator == 0) return whole + numerator;
+        return whole + numerator / denominator;
+      }
+    }
+
+    final fractionMatch = RegExp(r'^(\d+)\s*/\s*(\d+)$').firstMatch(normalized);
+    if (fractionMatch != null) {
+      final numerator = double.tryParse(fractionMatch.group(1)!);
+      final denominator = double.tryParse(fractionMatch.group(2)!);
+      if (numerator != null && denominator != null) {
+        if (denominator == 0) return numerator;
+        return numerator / denominator;
+      }
+    }
+
+    final rangeMatch = RegExp(r'^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$')
+        .firstMatch(normalized);
+    if (rangeMatch != null) {
+      final start = double.tryParse(rangeMatch.group(1)!);
+      final end = double.tryParse(rangeMatch.group(2)!);
+      if (start != null && end != null) {
+        return (start + end) / 2;
+      }
+    }
+
+    final numericMatch = RegExp(r'^-?\d+(?:\.\d+)?$').firstMatch(normalized);
+    if (numericMatch != null) {
+      return double.tryParse(numericMatch.group(0)!);
+    }
+
+    final leadingMatch = RegExp(r'^-?\d+(?:\.\d+)?').firstMatch(normalized);
+    if (leadingMatch != null) {
+      return double.tryParse(leadingMatch.group(0)!);
+    }
+
+    return null;
+  }
+
+  String _formatScaledQuantity(Ingredient ingredient, double multiplier) {
+    final value = _parseQuantityValue(ingredient.quantity);
+    final unit = ingredient.unit.trim();
+    if (value == null) {
+      final quantity = ingredient.quantity.trim();
+      if (quantity.isEmpty) return unit;
+      return unit.isEmpty ? quantity : '$quantity $unit';
+    }
+    final scaled = value * multiplier;
+    final formatted = _formatNumber(scaled);
+    return unit.isEmpty ? formatted : '$formatted $unit';
+  }
+
+  String _formatNumber(double value) {
+    final isInteger = (value - value.round()).abs() < 1e-6;
+    if (isInteger) return value.round().toString();
+    final precision = value < 1 ? 2 : 1;
+    var result = value.toStringAsFixed(precision);
+    result = result.replaceAll(RegExp(r'0+$'), '');
+    result = result.replaceAll(RegExp(r'\.$'), '');
+    return result;
+  }
+
+  Widget _buildServingsButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    final enabled = onPressed != null;
+    return GestureDetector(
+      onTap: enabled ? onPressed : null,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: enabled ? Colors.white : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: enabled
+                ? AppTheme.secondaryYellow.withOpacity(0.5)
+                : Colors.grey.shade300,
+          ),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: AppTheme.secondaryYellow.withOpacity(0.18),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: enabled ? AppTheme.primaryOrange : Colors.grey,
+        ),
+      ),
+    );
   }
 
   /// Kiểm tra xem user hiện tại đã đánh giá công thức này chưa
@@ -421,6 +564,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             final canManage = _currentUserId != null &&
                 (recipe.userId ?? '').isNotEmpty &&
                 recipe.userId == _currentUserId;
+            final theme = Theme.of(context);
+            final titleStyle = (theme.textTheme.headlineMedium ??
+                    theme.textTheme.headlineSmall)
+                ?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+              color: AppTheme.textDark,
+            );
+            final currentServings = _resolveCurrentServings(recipe);
+            final servingsMultiplier = _servingsMultiplier(recipe);
 
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -578,11 +731,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                           // Tiêu đề
                           Text(
                             recipe.title,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                            style: titleStyle ??
+                                const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w800,
                                   color: AppTheme.textDark,
                                 ),
                           ),
@@ -639,7 +791,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: const Color.fromARGB(208, 221, 240, 232).withOpacity(0.2),
+                                  color:
+                                      const Color.fromARGB(208, 221, 240, 232)
+                                          .withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                       color: AppTheme.primaryOrange
@@ -705,62 +859,169 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: (recipe.ingredients.isEmpty ||
-                                            _addingToShoppingList)
-                                        ? null
-                                        : () => _addIngredientsToShoppingList(
-                                            recipe),
-                                    icon: Icon(
-                                      _addingToShoppingList
-                                          ? Icons.hourglass_empty
-                                          : Icons.add_shopping_cart_outlined,
-                                      size: 20,
-                                    ),
-                                    label: Text(_addingToShoppingList
-                                        ? 'Đang thêm...'
-                                        : 'Thêm vào danh sách mua sắm'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.secondaryYellow
+                                        .withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '$currentServings khẩu phần',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.textDark,
+                                        ),
                                       ),
-                                    ),
+                                      const Spacer(),
+                                      _buildServingsButton(
+                                        icon: Icons.remove,
+                                        onPressed: currentServings <= 1
+                                            ? null
+                                            : () => _changeServings(
+                                                  recipe,
+                                                  -1,
+                                                ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 46,
+                                        height: 40,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.secondaryYellow
+                                              .withOpacity(0.18),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '$currentServings',
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.textDark,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _buildServingsButton(
+                                        icon: Icons.add,
+                                        onPressed: () => _changeServings(
+                                          recipe,
+                                          1,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 16),
-                                ...recipe.ingredients.map((i) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 6),
+                                const SizedBox(height: 20),
+                                if (recipe.ingredients.isEmpty)
+                                  Text(
+                                    'Chưa có nguyên liệu',
+                                    style: theme.textTheme.bodyMedium
+                                        ?.copyWith(color: AppTheme.textLight),
+                                  )
+                                else ...[
+                                  ...recipe.ingredients
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
+                                    final ingredient = entry.value;
+                                    final amount = _formatScaledQuantity(
+                                      ingredient,
+                                      servingsMultiplier,
+                                    );
+                                    final displayAmount = amount.trim().isEmpty
+                                        ? '\u2014'
+                                        : amount;
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        top: entry.key == 0 ? 0 : 12,
+                                        bottom: 12,
+                                      ),
                                       child: Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            margin: const EdgeInsets.only(
-                                                top: 8, right: 12),
-                                            decoration: const BoxDecoration(
-                                              color: AppTheme.primaryOrange,
-                                              shape: BoxShape.circle,
+                                          SizedBox(
+                                            width: 88,
+                                            child: Text(
+                                              displayAmount,
+                                              style: theme.textTheme.titleSmall
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppTheme.textDark,
+                                              ),
                                             ),
                                           ),
+                                          const SizedBox(width: 16),
                                           Expanded(
                                             child: Text(
-                                              '${i.quantity} ${i.unit} - ${i.name}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
+                                              ingredient.name,
+                                              style: theme.textTheme.bodyLarge
                                                   ?.copyWith(height: 1.5),
                                             ),
                                           ),
                                         ],
                                       ),
-                                    )),
+                                    );
+                                  }),
+                                ],
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: (recipe.ingredients.isEmpty ||
+                                            _addingToShoppingList)
+                                        ? null
+                                        : () => _addIngredientsToShoppingList(
+                                              recipe,
+                                            ),
+                                    icon: _addingToShoppingList
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.add_shopping_cart_outlined,
+                                            size: 20,
+                                          ),
+                                    label: Text(
+                                      _addingToShoppingList
+                                          ? 'Đang thêm...'
+                                          : 'Thêm vào danh sách mua sắm',
+                                      style:
+                                          theme.textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      elevation: 0,
+                                      backgroundColor: AppTheme.accentGreen,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(32),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -914,7 +1175,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               );
                             },
                           ),
-                          const SizedBox(height: 24),           // Tags
+                          const SizedBox(height: 24), // Tags
                           if (recipe.tags.isNotEmpty) ...[
                             const Text(
                               'Tags',
@@ -1143,7 +1404,7 @@ class _RatingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),      
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color.fromARGB(208, 221, 240, 232).withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
