@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:test_ui_app/model/recipe.dart';
+import 'package:test_ui_app/model/collection.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
-import '../favorite_screen.dart';
+import 'favorite_screen.dart';
+import 'collection/create_collection_screen.dart';
+import 'collection/collection_detail_screen.dart';
 
 class MyRecipesScreen extends StatefulWidget {
   const MyRecipesScreen({super.key});
@@ -15,17 +18,83 @@ class MyRecipesScreen extends StatefulWidget {
 }
 
 class _MyRecipesScreenState extends State<MyRecipesScreen> {
-  late Future<List<Recipe>> _future;
+  List<Recipe> _recipes = [];
+  List<Collection> _collections = [];
+  bool _isLoadingRecipes = true;
+  bool _isLoadingCollections = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _future = RecipeApiService.getMyRecipes();
+    _loadData();
+  }
+
+  Future<void> _loadData({bool showSpinner = true}) async {
+    if (showSpinner) {
+      setState(() {
+        _isLoadingRecipes = true;
+        _isLoadingCollections = true;
+        _error = null;
+      });
+    }
+
+    try {
+      final results = await Future.wait([
+        RecipeApiService.getMyRecipes(),
+        RecipeApiService.getMyCollections(limit: 100),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        _recipes = results[0] as List<Recipe>;
+        _collections = results[1] as List<Collection>;
+        _isLoadingRecipes = false;
+        _isLoadingCollections = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoadingRecipes = false;
+        _isLoadingCollections = false;
+      });
+      debugPrint('Error loading data: $e');
+    }
+  }
+
+  Future<void> _loadCollections() async {
+    setState(() => _isLoadingCollections = true);
+    try {
+      final collections = await RecipeApiService.getMyCollections(limit: 100);
+      if (mounted) {
+        setState(() {
+          _collections = collections;
+          _isLoadingCollections = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingCollections = false);
+      }
+      debugPrint('Error loading collections: $e');
+    }
   }
 
   Future<void> _reload() async {
-    setState(() => _future = RecipeApiService.getMyRecipes());
-    await _future.catchError((_) {});
+    await _loadData(showSpinner: false);
+  }
+
+  Future<void> _openCreateCollection() async {
+    final result = await Navigator.push<Collection>(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateCollectionScreen()),
+    );
+    if (result != null) {
+      await _loadCollections();
+    }
   }
 
   Future<void> _openCreateRecipe() async {
@@ -34,14 +103,17 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
     );
     if (created == true) {
-      await _reload();
+      await _loadData(showSpinner: false);
     }
   }
 
-  Future<void> _openRecipeDetail(String recipeId) {
-    return Navigator.of(context, rootNavigator: true).push(
+  Future<void> _openRecipeDetail(String recipeId) async {
+    final changed = await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(builder: (_) => RecipeDetailScreen(recipeId: recipeId)),
     );
+    if (changed == true && mounted) {
+      await _loadData(showSpinner: false);
+    }
   }
 
   Future<void> _handleMenuSelection(String value, Recipe recipe) async {
@@ -53,7 +125,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         ),
       );
       if (updated == true) {
-        await _reload();
+        await _loadData(showSpinner: false);
       }
     } else if (value == 'view') {
       await _openRecipeDetail(recipe.id);
@@ -62,7 +134,30 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    Widget bodyContent;
+
+    if (_isLoadingRecipes) {
+      bodyContent = const _LoadingView();
+    } else if (_error != null && _recipes.isEmpty) {
+      bodyContent = _ErrorView(
+        error: _error,
+        onRetry: _reload,
+      );
+    } else if (_recipes.isEmpty) {
+      bodyContent = const _EmptyView();
+    } else {
+      bodyContent = _RecipesContent(
+        recipes: _recipes,
+        collections: _collections,
+        isLoadingCollections: _isLoadingCollections,
+        onCreatePressed: _openCreateRecipe,
+        onCreateCollection: _openCreateCollection,
+        onOpenRecipe: (recipe) => _openRecipeDetail(recipe.id),
+        onMenuSelected: _handleMenuSelection,
+        onCollectionDeleted: _loadCollections,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Công thức của tôi'),
@@ -72,22 +167,11 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
             fontWeight: FontWeight.w600,
             fontFamily: 'Poppins'),
         backgroundColor: AppTheme.lightCream,
-        actions: [
-          IconButton(
-              onPressed: () async {
-                final created = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const RecipeFormScreen()));
-                if (created == true) _reload();
-              },
-              icon: const Icon(Icons.add))
-        ],
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(
           right: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 5, // ✅ thấp hơn, đẹp hơn
+          bottom: MediaQuery.of(context).padding.bottom + 5,
         ),
         child: FloatingActionButton(
           backgroundColor: const Color.fromARGB(131, 66, 107, 93),
@@ -96,35 +180,11 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
           child: const Icon(Icons.add),
         ),
       ),
-
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _reload,
           color: AppTheme.primaryOrange,
-          child: FutureBuilder<List<Recipe>>(
-            future: _future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _LoadingView(theme: theme);
-              }
-              if (snapshot.hasError) {
-                return _ErrorView(
-                  error: snapshot.error,
-                  onRetry: _reload,
-                );
-              }
-              final recipes = snapshot.data ?? const <Recipe>[];
-              if (recipes.isEmpty) {
-                return const _EmptyView();
-              }
-              return _RecipesContent(
-                recipes: recipes,
-                onCreatePressed: _openCreateRecipe,
-                onOpenRecipe: (recipe) => _openRecipeDetail(recipe.id),
-                onMenuSelected: _handleMenuSelection,
-              );
-            },
-          ),
+          child: bodyContent,
         ),
       ),
     );
@@ -147,24 +207,27 @@ class _BottomNavMetrics {
 class _RecipesContent extends StatelessWidget {
   const _RecipesContent({
     required this.recipes,
+    required this.collections,
+    required this.isLoadingCollections,
     required this.onCreatePressed,
+    required this.onCreateCollection,
     required this.onOpenRecipe,
     required this.onMenuSelected,
+    required this.onCollectionDeleted,
   });
 
   final List<Recipe> recipes;
+  final List<Collection> collections;
+  final bool isLoadingCollections;
   final VoidCallback onCreatePressed;
+  final VoidCallback onCreateCollection;
   final ValueChanged<Recipe> onOpenRecipe;
   final Future<void> Function(String value, Recipe recipe) onMenuSelected;
+  final Future<void> Function() onCollectionDeleted;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final favoritesCount = recipes.where((r) => r.isFavorite).length;
-    final quickMeals = recipes
-        .where((r) =>
-            (r.prepTime + r.cookTime) <= 30 && (r.prepTime + r.cookTime) > 0)
-        .length;
 
     return CustomScrollView(
       physics:
@@ -174,32 +237,42 @@ class _RecipesContent extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: _CollectionCard(
-                    title: 'Yêu thích',
-                    subtitle: '$favoritesCount công thức',
-                    backgroundColor: const Color(0xD0DDF0E8), // = ARGB(208,221,240,232)
-                    icon: Icons.favorite_rounded,
-                    iconColor: AppTheme.primaryOrange,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const FavoritesScreen()),
-                      );
-                    },
-                  ),
+                // Favorites Collection (always shown)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CollectionCard(
+                        title: 'Yêu thích',
+                        subtitle: '$favoritesCount công thức',
+                        backgroundColor: const Color(0xD0DDF0E8),
+                        icon: Icons.favorite_rounded,
+                        iconColor: AppTheme.primaryOrange,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                          );
+                        },
+                      ),
+                    ),
+                    
+                    // Create Collection button
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _CreateCollectionCard(onTap: onCreateCollection),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _CollectionCard(
-                    title: 'Ggg',
-                    subtitle: '$quickMeals items',
-                    backgroundColor: const Color.fromARGB(208, 221, 240, 232),
-                    icon: Icons.grid_view_rounded,
-                    iconColor: AppTheme.primaryOrange,
+                
+                // Show all user collections in a grid
+                if (collections.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _CollectionsGrid(
+                    collections: collections,
+                    onCollectionDeleted: onCollectionDeleted,
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -237,12 +310,11 @@ class _RecipesContent extends StatelessWidget {
 }
 
 class _LoadingView extends StatelessWidget {
-  const _LoadingView({required this.theme});
-
-  final ThemeData theme;
+  const _LoadingView();
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return CustomScrollView(
       physics:
           const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -523,49 +595,6 @@ class _RecipeGridCard extends StatelessWidget {
   }
 }
 
-class _RecipeImage extends StatelessWidget {
-  const _RecipeImage({required this.imageUrl});
-
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final placeholder = Container(
-      color: AppTheme.secondaryYellow,
-      child: const Center(
-        child: Icon(Icons.restaurant_menu, color: AppTheme.primaryOrange),
-      ),
-    );
-
-    if (imageUrl.isEmpty) {
-      return placeholder;
-    }
-
-    return Image.network(
-      imageUrl,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      errorBuilder: (_, __, ___) => placeholder,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            placeholder,
-            Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
 class _Badge extends StatelessWidget {
   const _Badge({required this.label, this.background, this.foreground});
 
@@ -632,6 +661,117 @@ class _LikePill extends StatelessWidget {
   }
 }
 
+// Widget for creating a new collection
+class _CreateCollectionCard extends StatelessWidget {
+  const _CreateCollectionCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color.fromARGB(208, 240, 232, 221),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          height: 100,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: AppTheme.primaryOrange,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Thêm bộ sưu tập',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppTheme.textDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Widget for displaying all collections in a grid
+class _CollectionsGrid extends StatelessWidget {
+  const _CollectionsGrid({
+    required this.collections,
+    required this.onCollectionDeleted,
+  });
+
+  final List<Collection> collections;
+  final Future<void> Function() onCollectionDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    // Create a list of colors for collections
+    final colors = [
+      const Color.fromARGB(208, 238, 240, 221), // Green tint
+      const Color.fromARGB(208, 232, 240, 221), // Light green
+      const Color.fromARGB(208, 240, 221, 232), // Pink tint
+      const Color.fromARGB(208, 221, 232, 240), // Blue tint
+      const Color.fromARGB(208, 240, 232, 221), // Orange tint
+      const Color.fromARGB(208, 232, 221, 240), // Purple tint
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        mainAxisExtent: 100,
+      ),
+      itemCount: collections.length,
+      itemBuilder: (context, index) {
+        final collection = collections[index];
+        final color = colors[index % colors.length];
+        return _CollectionCard(
+          title: collection.name,
+          subtitle: '${collection.recipeCount} items',
+          backgroundColor: color,
+          icon: Icons.folder_rounded,
+          iconColor: AppTheme.accentGreen,
+          onTap: () async {
+            final deleted = await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => CollectionDetailScreen(
+                  collectionId: collection.id,
+                  collectionName: collection.name,
+                ),
+              ),
+            );
+            // Reload collections if one was deleted
+            if (deleted == true) {
+              await onCollectionDeleted();
+            }
+          },
+        );
+      },
+    );
+  }
+}
+
 class _ImagePlaceholder extends StatelessWidget {
   const _ImagePlaceholder();
 
@@ -644,10 +784,4 @@ class _ImagePlaceholder extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatTag(String value) {
-  if (value.isEmpty) return value;
-  final lower = value.toLowerCase();
-  return lower[0].toUpperCase() + lower.substring(1);
 }

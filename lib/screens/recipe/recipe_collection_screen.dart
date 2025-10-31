@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../model/recipe.dart';
 import '../../services/recipe_api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/recipe_card.dart';
 import 'recipe_detail_screen.dart';
 
 enum RecipeCollectionSort {
@@ -108,19 +109,35 @@ class RecipeCollectionScreen extends StatefulWidget {
 
 class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   static const _categoryOptions = <_FilterOption>[
-    _FilterOption(value: 'breakfast', label: 'Bữa sáng', icon: Icons.free_breakfast_rounded),
-    _FilterOption(value: 'lunch', label: 'Bữa trưa', icon: Icons.lunch_dining_rounded),
-    _FilterOption(value: 'dinner', label: 'Bữa tối', icon: Icons.dinner_dining_rounded),
-    _FilterOption(value: 'dessert', label: 'Tráng miệng', icon: Icons.cake_rounded),
-    _FilterOption(value: 'snack', label: 'Ăn vặt', icon: Icons.fastfood_rounded),
-    _FilterOption(value: 'beverage', label: 'Đồ uống', icon: Icons.local_cafe_rounded),
-    _FilterOption(value: 'other', label: 'Khác', icon: Icons.restaurant_rounded),
+    _FilterOption(
+        value: 'breakfast',
+        label: 'Bữa sáng',
+        icon: Icons.free_breakfast_rounded),
+    _FilterOption(
+        value: 'lunch', label: 'Bữa trưa', icon: Icons.lunch_dining_rounded),
+    _FilterOption(
+        value: 'dinner', label: 'Bữa tối', icon: Icons.dinner_dining_rounded),
+    _FilterOption(
+        value: 'dessert', label: 'Tráng miệng', icon: Icons.cake_rounded),
+    _FilterOption(
+        value: 'snack', label: 'Ăn vặt', icon: Icons.fastfood_rounded),
+    _FilterOption(
+        value: 'beverage', label: 'Đồ uống', icon: Icons.local_cafe_rounded),
+    _FilterOption(
+        value: 'other', label: 'Khác', icon: Icons.restaurant_rounded),
   ];
 
   static const _difficultyOptions = <_FilterOption>[
-    _FilterOption(value: 'easy', label: 'Dễ', icon: Icons.sentiment_satisfied_rounded),
-    _FilterOption(value: 'medium', label: 'Trung bình', icon: Icons.sentiment_neutral_rounded),
-    _FilterOption(value: 'hard', label: 'Khó', icon: Icons.sentiment_very_dissatisfied_rounded),
+    _FilterOption(
+        value: 'easy', label: 'Dễ', icon: Icons.sentiment_satisfied_rounded),
+    _FilterOption(
+        value: 'medium',
+        label: 'Trung bình',
+        icon: Icons.sentiment_neutral_rounded),
+    _FilterOption(
+        value: 'hard',
+        label: 'Khó',
+        icon: Icons.sentiment_very_dissatisfied_rounded),
   ];
 
   static const _defaultDietOptions = <String>{
@@ -141,11 +158,15 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
 
   static const _timeframeOptions = <_FilterOption>[
     _FilterOption(value: 'week', label: 'Tuần này', icon: Icons.today_rounded),
-    _FilterOption(value: 'month', label: 'Tháng này', icon: Icons.calendar_month_rounded),
-    _FilterOption(value: 'all', label: 'Tất cả', icon: Icons.all_inclusive_rounded),
+    _FilterOption(
+        value: 'month', label: 'Tháng này', icon: Icons.calendar_month_rounded),
+    _FilterOption(
+        value: 'all', label: 'Tất cả', icon: Icons.all_inclusive_rounded),
   ];
 
   final List<Recipe> _recipes = <Recipe>[];
+  final Set<String> _favoriteIds = <String>{};
+  final Set<String> _favoriteLoading = <String>{};
   final ScrollController _scrollController = ScrollController();
 
   late String? _selectedCategory;
@@ -170,7 +191,9 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
     super.initState();
     _enableSearch = widget.config.enableSearch;
     final initialSearch = widget.config.initialSearch?.trim();
-    _searchQuery = (initialSearch != null && initialSearch.isNotEmpty) ? initialSearch : null;
+    _searchQuery = (initialSearch != null && initialSearch.isNotEmpty)
+        ? initialSearch
+        : null;
     if (_enableSearch) {
       _searchController = TextEditingController(text: initialSearch ?? '');
       _searchListener = () {
@@ -242,6 +265,16 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
         _recipes
           ..clear()
           ..addAll(recipes);
+        _favoriteIds
+          ..clear()
+          ..addAll(
+            recipes
+                .where((recipe) => recipe.isFavorite)
+                .map((recipe) => recipe.id),
+          );
+        _favoriteLoading.removeWhere(
+          (id) => !_recipes.any((recipe) => recipe.id == id),
+        );
         _error = null;
       });
     } catch (error) {
@@ -329,7 +362,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
       },
       decoration: InputDecoration(
         hintText: hint,
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: controller.text.isNotEmpty
             ? IconButton(
@@ -384,7 +418,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Row(
                     children: [
-                      const Icon(Icons.tune_rounded, color: AppTheme.primaryOrange),
+                      const Icon(Icons.tune_rounded,
+                          color: AppTheme.primaryOrange),
                       const SizedBox(width: 12),
                       const Text(
                         'Bộ lọc',
@@ -409,9 +444,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                     ],
                   ),
                 ),
-                const Divider(
-                  color: AppTheme.primaryOrange,
-                  height: 0.5),
+                const Divider(color: AppTheme.primaryOrange, height: 0.5),
                 // Filters content
                 Expanded(
                   child: ListView(
@@ -734,30 +767,36 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                                   if (_selectedCategory != null)
                                     _ActiveFilterChip(
                                       label: _categoryOptions
-                                          .firstWhere((o) => o.value == _selectedCategory)
+                                          .firstWhere((o) =>
+                                              o.value == _selectedCategory)
                                           .label,
                                       onRemove: () => _onCategorySelected(null),
                                     ),
                                   if (_selectedDifficulty != null)
                                     _ActiveFilterChip(
                                       label: _difficultyOptions
-                                          .firstWhere((o) => o.value == _selectedDifficulty)
+                                          .firstWhere((o) =>
+                                              o.value == _selectedDifficulty)
                                           .label,
                                       onRemove: () {
-                                        setState(() => _selectedDifficulty = null);
+                                        setState(
+                                            () => _selectedDifficulty = null);
                                         _fetchRecipes();
                                       },
                                     ),
                                   if (_selectedMaxTotalTime != null)
                                     _ActiveFilterChip(
-                                      label: _formatTotalTimeLabel(_selectedMaxTotalTime!),
+                                      label: _formatTotalTimeLabel(
+                                          _selectedMaxTotalTime!),
                                       onRemove: () => _onTimeSelected(null),
                                     ),
                                   if (_selectedDietTags.isNotEmpty)
                                     _ActiveFilterChip(
-                                      label: '${_selectedDietTags.length} chế độ ăn',
+                                      label:
+                                          '${_selectedDietTags.length} chế độ ăn',
                                       onRemove: () {
-                                        setState(() => _selectedDietTags.clear());
+                                        setState(
+                                            () => _selectedDietTags.clear());
                                         _fetchRecipes();
                                       },
                                     ),
@@ -765,7 +804,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                                     _ActiveFilterChip(
                                       label: _selectedTimeframe.label,
                                       onRemove: () {
-                                        setState(() => _selectedTimeframe = _timeframeOptions.last);
+                                        setState(() => _selectedTimeframe =
+                                            _timeframeOptions.last);
                                         _fetchRecipes();
                                       },
                                     ),
@@ -777,7 +817,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                             TextButton(
                               onPressed: _clearAllFilters,
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
@@ -793,7 +834,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                     // Sort Section
                     Row(
                       children: [
-                        Icon(_selectedSort.icon, size: 16, color: AppTheme.primaryOrange),
+                        Icon(_selectedSort.icon,
+                            size: 16, color: AppTheme.primaryOrange),
                         const SizedBox(width: 8),
                         const Text(
                           'Sắp xếp:',
@@ -836,7 +878,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                 child: LinearProgressIndicator(
                   minHeight: 3,
                   backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
                 ),
               ),
 
@@ -863,7 +906,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.primaryOrange),
                       ),
                       SizedBox(height: 16),
                       Text('Đang tải công thức...'),
@@ -875,7 +919,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: _EmptyState(
-                  description: 'Không có món phù hợp. Hãy thử nới lỏng bộ lọc hoặc xem những món mới nhất.',
+                  description:
+                      'Không có món phù hợp. Hãy thử nới lỏng bộ lọc hoặc xem những món mới nhất.',
                 ),
               )
             else
@@ -885,9 +930,12 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final recipe = _recipes[index];
-                      return _GridRecipeCard(
+                      return RecipeCard(
                         recipe: recipe,
                         onTap: () => _openRecipeDetail(recipe),
+                        isFavorite: _favoriteIds.contains(recipe.id),
+                        isFavoriteBusy: _favoriteLoading.contains(recipe.id),
+                        onToggleFavorite: () => _toggleFavorite(recipe),
                       );
                     },
                     childCount: _recipes.length,
@@ -904,6 +952,35 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleFavorite(Recipe recipe) async {
+    final recipeId = recipe.id;
+    if (_favoriteLoading.contains(recipeId)) return;
+    setState(() {
+      _favoriteLoading.add(recipeId);
+    });
+
+    try {
+      final isFavorite = await RecipeApiService.toggleFavorite(recipeId);
+      if (!mounted) return;
+      setState(() {
+        _favoriteLoading.remove(recipeId);
+        if (isFavorite) {
+          _favoriteIds.add(recipeId);
+        } else {
+          _favoriteIds.remove(recipeId);
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _favoriteLoading.remove(recipeId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Khong the cap nhat yeu thich: $error')),
+      );
+    }
   }
 
   void _openRecipeDetail(Recipe recipe) {
@@ -1267,10 +1344,14 @@ class _BottomSheetChip extends StatelessWidget {
             vertical: 10,
           ),
           decoration: BoxDecoration(
-            color: selected ? const Color.fromARGB(107, 102, 165, 144) : Colors.grey.shade100,
+            color: selected
+                ? const Color.fromARGB(107, 102, 165, 144)
+                : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: selected ? const Color.fromARGB(156, 117, 198, 171) : Colors.transparent,
+              color: selected
+                  ? const Color.fromARGB(156, 117, 198, 171)
+                  : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -1299,251 +1380,6 @@ class _BottomSheetChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _GridRecipeCard extends StatelessWidget {
-  const _GridRecipeCard({required this.recipe, required this.onTap});
-
-  final Recipe recipe;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final totalTime = recipe.prepTime + recipe.cookTime;
-    final likes =
-        recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
-    final tag = recipe.tags.isNotEmpty ? recipe.tags.first.trim() : '';
-    final authorName = (recipe.authorName ?? '').trim();
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          // boxShadow: [
-          //   BoxShadow(
-          //     color: Colors.black.withValues(alpha: 0.04),
-          //     blurRadius: 10,
-          //     offset: const Offset(0, 6),
-          //   ),
-          // ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 160,
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: recipe.imageUrl.isNotEmpty
-                        ? Image.network(
-                            recipe.imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (_, __, ___) =>
-                                const _ImagePlaceholder(),
-                          )
-                        : const _ImagePlaceholder(),
-                  ),
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    right: 10,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (totalTime > 0)
-                          _Badge(label: '${totalTime} min'),
-                        if (tag.isNotEmpty) _Badge(label: _formatTag(tag),
-                            foreground: AppTheme.accentGreen,
-                            background: const Color(0xFFE7F8ED)),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    right: 10,
-                    bottom: 10,
-                    child: _LikePill(count: likes),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipe.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundColor:
-                              AppTheme.secondaryYellow.withOpacity(0.6),
-                          backgroundImage: (recipe.authorAvatar != null &&
-                                  recipe.authorAvatar!.isNotEmpty)
-                              ? NetworkImage(recipe.authorAvatar!)
-                              : null,
-                          child: (recipe.authorAvatar == null ||
-                                  recipe.authorAvatar!.isEmpty)
-                              ? const Icon(Icons.person,
-                                  size: 16, color: AppTheme.primaryOrange)
-                              : null,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            authorName.isEmpty ? 'Anonymous' : authorName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: const Color.fromARGB(255, 239, 10, 10),
-                                fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppTheme.primaryOrange),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ImagePlaceholder extends StatelessWidget {
-  const _ImagePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppTheme.secondaryYellow,
-      child: const Center(
-        child: Icon(Icons.restaurant_menu, color: AppTheme.primaryOrange),
-      ),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, this.background, this.foreground});
-
-  final String label;
-  final Color? background;
-  final Color? foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: background ?? const Color(0xFFFFEDCF),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: foreground ?? AppTheme.textDark,
-              fontWeight: FontWeight.w600,
-            ),
-      ),
-    );
-  }
-}
-
-class _LikePill extends StatelessWidget {
-  const _LikePill({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.favorite_border,
-              size: 16, color: AppTheme.primaryOrange),
-          const SizedBox(width: 6),
-          Text(
-            count.toString(),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textDark,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _formatTag(String value) {
-  if (value.isEmpty) return value;
-  final lower = value.toLowerCase();
-  return lower[0].toUpperCase() + lower.substring(1);
 }
 
 class _EmptyView extends StatelessWidget {

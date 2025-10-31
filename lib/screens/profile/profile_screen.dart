@@ -14,7 +14,7 @@ import '../auth/login_screen.dart';
 import 'widget/statItem.dart';
 import 'widget/menuItem.dart';
 import 'widget/menuSection.dart';
-import '../favorite_screen.dart';
+import '../recipe/favorite_screen.dart';
 import 'about_us_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -217,18 +217,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               TextField(
                   controller: controller,
-                  decoration: const InputDecoration(hintText: 'delete',hintStyle: const TextStyle(color: Color(0xFFC0C0C0)),)),
+                  decoration: const InputDecoration(
+                    hintText: 'delete',
+                    hintStyle: const TextStyle(color: Color(0xFFC0C0C0)),
+                  )),
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Hủy')),
-            ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Xóa'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+                      foregroundColor: Colors.black87,
+                      overlayColor: Colors.grey.withOpacity(0.2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Huỷ',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorRed,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Xoá',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -265,14 +303,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Hủy')),
-            ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Xóa'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+                      foregroundColor: Colors.black87,
+                      overlayColor: Colors.grey.withOpacity(0.2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Huỷ',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorRed,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Xoá',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -294,355 +367,359 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatarProvider = _buildAvatarImageProvider(user?.avatar);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Tài khoản'),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          title: const Text('Tài khoản'),
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+          backgroundColor: AppTheme.primaryOrange,
         ),
-        backgroundColor: AppTheme.primaryOrange,
-      ),
-      body: user == null
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-        color: AppTheme.primaryOrange,
-        backgroundColor: Colors.white,
-        strokeWidth: 2.5,
-        // Hàm gọi khi kéo xuống
-        onRefresh: () async => _load(),   // hoặc: () => _load()
-        // Nội dung cuộn
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(), // rất quan trọng
-          slivers: [
-                // Header với avatar và thông tin user
-                SliverToBoxAdapter(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: AppTheme.primaryOrange, // chỉ một màu
-                    ),
-                    child: SafeArea(
-                      bottom: false,
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          // Avatar với nút edit
-                          Stack(
+        body: user == null
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                color: AppTheme.primaryOrange,
+                backgroundColor: Colors.white,
+                strokeWidth: 2.5,
+                // Hàm gọi khi kéo xuống
+                onRefresh: () async => _load(), // hoặc: () => _load()
+                // Nội dung cuộn
+                child: CustomScrollView(
+                  physics:
+                      const AlwaysScrollableScrollPhysics(), // rất quan trọng
+                  slivers: [
+                    // Header với avatar và thông tin user
+                    SliverToBoxAdapter(
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: AppTheme.primaryOrange, // chỉ một màu
+                        ),
+                        child: SafeArea(
+                          bottom: false,
+                          child: Column(
                             children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 4),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 50,
-                                  backgroundColor: Colors.white,
-                                  backgroundImage: avatarProvider,
-                                  child: avatarProvider == null
-                                      ? const Icon(Icons.person,
-                                          size: 50,
-                                          color: AppTheme.primaryOrange)
-                                      : null,
-                                ),
-                              ),
-                              Positioned(
-                                right: 0,
-                                bottom: 0,
-                                child: GestureDetector(
-                                  onTap: _busy ? null : _pickAndUploadAvatar,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
+                              const SizedBox(height: 20),
+                              // Avatar với nút edit
+                              Stack(
+                                children: [
+                                  Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
                                       shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 4),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 4,
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(
-                                      Icons.camera_alt,
-                                      size: 20,
-                                      color: AppTheme.primaryOrange,
+                                    child: CircleAvatar(
+                                      radius: 50,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: avatarProvider,
+                                      child: avatarProvider == null
+                                          ? const Icon(Icons.person,
+                                              size: 50,
+                                              color: AppTheme.primaryOrange)
+                                          : null,
                                     ),
+                                  ),
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: GestureDetector(
+                                      onTap:
+                                          _busy ? null : _pickAndUploadAvatar,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.1),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt,
+                                          size: 20,
+                                          color: AppTheme.primaryOrange,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              // Tên user
+                              Text(
+                                user.fullName,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // Bio nếu có
+                              if ((user.bio ?? '').isNotEmpty) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24),
+                                  child: Text(
+                                    user.bio!,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.95),
+                                      height: 1.4,
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              // Stats (nằm trong header luôn)
+                              if (_stats != null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.08),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        StatItem(
+                                          icon: Icons.menu_book,
+                                          label: 'Công thức',
+                                          value:
+                                              _stats!.totalRecipes.toString(),
+                                        ),
+                                        Container(
+                                          width: 1,
+                                          height: 40,
+                                          color: Colors.grey[300],
+                                        ),
+                                        StatItem(
+                                          icon: Icons.collections_bookmark,
+                                          label: 'Bộ sưu tập',
+                                          value: _stats!.totalCollections
+                                              .toString(),
+                                        ),
+                                        Container(
+                                          width: 1,
+                                          height: 40,
+                                          color: Colors.grey[300],
+                                        ),
+                                        StatItem(
+                                          icon: Icons.favorite,
+                                          label: 'Yêu thích',
+                                          value:
+                                              _stats!.totalFavorites.toString(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Menu items
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          const SizedBox(height: 16),
+                          MenuSection(
+                            title: 'Quản lý tài khoản',
+                            items: [
+                              MenuItem(
+                                icon: Icons.edit_outlined,
+                                title: 'Chỉnh sửa hồ sơ',
+                                onTap: () async {
+                                  final updated = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EditProfileInline(
+                                        initialName: user.fullName,
+                                        initialBio: user.bio ?? '',
+                                      ),
+                                    ),
+                                  );
+                                  if (updated == true) _load();
+                                },
+                              ),
+                              MenuItem(
+                                icon: Icons.lock_outline,
+                                title: 'Đổi mật khẩu',
+                                onTap: user.authProvider == 'google'
+                                    ? () => ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Tài khoản Google không thể đổi mật khẩu trên ứng dụng. Vui lòng đổi trên Google.',
+                                            ),
+                                          ),
+                                        )
+                                    : () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ChangePasswordScreen(),
+                                          ),
+                                        ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          MenuSection(
+                            title: 'Nội dung',
+                            items: [
+                              MenuItem(
+                                icon: Icons.favorite_border_outlined,
+                                title: 'Món yêu thích',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const FavoritesScreen(),
+                                  ),
+                                ),
+                              ),
+                              MenuItem(
+                                icon: Icons.mode_comment_outlined,
+                                title: 'Đánh giá của tôi',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const MyRecipesScreen(),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          // Tên user
-                          Text(
-                            user.fullName,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Bio nếu có
-                          if ((user.bio ?? '').isNotEmpty) ...[
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 24),
-                              child: Text(
-                                user.bio!,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.95),
-                                  height: 1.4,
-                                ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          // Stats (nằm trong header luôn)
-                          if (_stats != null)
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    StatItem(
-                                      icon: Icons.menu_book,
-                                      label: 'Công thức',
-                                      value: _stats!.totalRecipes.toString(),
-                                    ),
-                                    Container(
-                                      width: 1,
-                                      height: 40,
-                                      color: Colors.grey[300],
-                                    ),
-                                    StatItem(
-                                      icon: Icons.collections_bookmark,
-                                      label: 'Bộ sưu tập',
-                                      value:
-                                          _stats!.totalCollections.toString(),
-                                    ),
-                                    Container(
-                                      width: 1,
-                                      height: 40,
-                                      color: Colors.grey[300],
-                                    ),
-                                    StatItem(
-                                      icon: Icons.favorite,
-                                      label: 'Yêu thích',
-                                      value: _stats!.totalFavorites.toString(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
                           const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Menu items
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: 16),
-                      MenuSection(
-                        title: 'Quản lý tài khoản',
-                        items: [
-                          MenuItem(
-                            icon: Icons.edit_outlined,
-                            title: 'Chỉnh sửa hồ sơ',
-                            onTap: () async {
-                              final updated = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EditProfileInline(
-                                    initialName: user.fullName,
-                                    initialBio: user.bio ?? '',
+                          MenuSection(
+                            title: 'Cài đặt hệ thống',
+                            items: [
+                              MenuItem(
+                                icon: Icons.language_outlined,
+                                title: 'Ngôn ngữ',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const FavoritesScreen(),
                                   ),
                                 ),
-                              );
-                              if (updated == true) _load();
-                            },
+                              ),
+                              MenuItem(
+                                icon: Icons.brightness_4_outlined,
+                                title: 'Giao diện',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const MyRecipesScreen(),
+                                  ),
+                                ),
+                              ),
+                              MenuItem(
+                                icon: Icons.circle_notifications_outlined,
+                                title: 'Thông báo',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const MyRecipesScreen(),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          MenuItem(
-                            icon: Icons.lock_outline,
-                            title: 'Đổi mật khẩu',
-                            onTap: user.authProvider == 'google'
-                                ? () =>
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Tài khoản Google không thể đổi mật khẩu trên ứng dụng. Vui lòng đổi trên Google.',
-                                        ),
-                                      ),
+                          const SizedBox(height: 24),
+                          MenuSection(
+                            title: 'Thông tin',
+                            items: [
+                              MenuItem(
+                                icon: Icons.info_outlined,
+                                title: 'Về chúng tôi',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AboutUsScreen(),
+                                  ),
+                                ),
+                              ),
+                              MenuItem(
+                                icon: Icons.policy_outlined,
+                                title: 'chính sách bảo mật',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PrivacyPolicyScreen(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          MenuSection(
+                            title: 'Nguy hiểm',
+                            items: [
+                              MenuItem(
+                                icon: Icons.delete_outline,
+                                title: 'Xóa tài khoản',
+                                isDestructive: true,
+                                onTap: _busy ? null : _deleteAccount,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          //logout button
+                          SizedBox(
+                            height: 60,
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _busy ? null : _signOut,
+                              icon: _busy
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
                                     )
-                                : () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ChangePasswordScreen(),
-                                      ),
-                                    ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      MenuSection(
-                        title: 'Nội dung',
-                        items: [
-                          MenuItem(
-                            icon: Icons.favorite_border_outlined,
-                            title: 'Món yêu thích',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FavoritesScreen(),
-                              ),
+                                  : const Icon(Icons.logout),
+                              label: const Text('Đăng xuất'),
                             ),
                           ),
-                          MenuItem(
-                            icon: Icons.mode_comment_outlined,
-                            title: 'Đánh giá của tôi',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyRecipesScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      MenuSection(
-                        title: 'Cài đặt hệ thống',
-                        items: [
-                          MenuItem(
-                            icon: Icons.language_outlined,
-                            title: 'Ngôn ngữ',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FavoritesScreen(),
-                              ),
-                            ),
-                          ),
-                          MenuItem(
-                            icon: Icons.brightness_4_outlined,
-                            title: 'Giao diện',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyRecipesScreen(),
-                              ),
-                            ),
-                          ),
-                          MenuItem(
-                            icon: Icons.circle_notifications_outlined,
-                            title: 'Thông báo',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyRecipesScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      MenuSection(
-                        title: 'Thông tin',
-                        items: [
-                          MenuItem(
-                            icon: Icons.info_outlined,
-                            title: 'Về chúng tôi',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AboutUsScreen(),
-                              ),
-                            ),
-                          ),
-                          MenuItem(
-                            icon: Icons.policy_outlined,
-                            title: 'chính sách bảo mật',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PrivacyPolicyScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      MenuSection(
-                        title: 'Nguy hiểm',
-                        items: [
-                          MenuItem(
-                            icon: Icons.delete_outline,
-                            title: 'Xóa tài khoản',
-                            isDestructive: true,
-                            onTap: _busy ? null : _deleteAccount,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      //logout button
-                      SizedBox(
-                        height: 60,
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _busy ? null : _signOut,
-                          icon: _busy
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.logout),
-                          label: const Text('Đăng xuất'),
-                        ),
-                      ),
 
-                      const SizedBox(height: 128),
-                    ]),
-                  ),
+                          const SizedBox(height: 128),
+                        ]),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          )
-    );
+              ));
   }
 }

@@ -3,9 +3,9 @@ import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
+import 'package:test_ui_app/screens/recipe/collection/add_recipe_to_collection_sheet.dart';
 import 'package:test_ui_app/screens/recipe/recipe_form_screen.dart';
-import 'package:test_ui_app/model/shopping_item.dart';
-import 'package:test_ui_app/services/shopping_list_service.dart';
+import 'package:test_ui_app/screens/shopping/add_to_list_bottom_sheet.dart';
 import 'package:share_plus/share_plus.dart';
 
 String _difficultyLabel(String value) {
@@ -99,7 +99,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     setState(() {
       _future = RecipeApiService.getRecipeById(widget.recipeId);
     });
-    await _future.catchError((_) {});
+    try {
+      await _future;
+    } catch (_) {}
   }
 
   Future<void> _loadCurrentUser() async {
@@ -119,41 +121,59 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     await Share.share(buffer.toString());
   }
 
+  Future<void> _openAddToCollectionSheet(Recipe recipe) async {
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => AddRecipeToCollectionSheet(
+        recipeId: recipe.id,
+        recipeTitle: recipe.title,
+      ),
+    );
+    if (!mounted) return;
+    if (added == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã thêm công thức vào bộ sưu tập'),
+        ),
+      );
+    }
+  }
+
   Future<void> _addIngredientsToShoppingList(Recipe recipe) async {
     if (_addingToShoppingList) return;
     if (recipe.ingredients.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Không có nguyên liệu để thêm vào danh sách mua sắm')),
+            content: Text('Không có nguyên liệu để thêm vào danh sách mua sắm'),
+          ),
         );
       }
       return;
     }
 
     setState(() => _addingToShoppingList = true);
-    try {
-      final items = recipe.ingredients
-          .map((ingredient) => ShoppingItem.fromIngredient(ingredient,
-              recipeTitle: recipe.title))
-          .toList();
-      await ShoppingListService.instance.addItems(items);
-      if (mounted) {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => AddToShoppingListSheet(recipe: recipe),
+    );
+    if (mounted) {
+      setState(() => _addingToShoppingList = false);
+      if (result == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(
-                  'Đã thêm ${items.length} nguyên liệu vào danh sách mua sắm')),
+            content: Text('Đã thêm nguyên liệu từ "${recipe.title}" vào danh sách'),
+          ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể thêm vào danh sách: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _addingToShoppingList = false);
     }
   }
 
@@ -266,22 +286,44 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Xoá công thức'),
         content: const Text('Bạn chắc chắn muốn xoá công thức này?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Huỷ')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorRed,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+                    foregroundColor: Colors.black87,
+                    overlayColor: Colors.grey.withOpacity(0.2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Huỷ'),
+                ),
               ),
-            ),
-            child: const Text('Xoá'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.errorRed,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Xoá'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -385,7 +427,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_outlined, color: Colors.black87),
+                      icon: const Icon(Icons.arrow_back_outlined,
+                          color: Colors.black87),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -400,6 +443,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         tooltip: 'Chia sẻ',
                         onPressed: () => _shareRecipe(recipe),
                         icon: const Icon(Icons.share_outlined,
+                            color: AppTheme.primaryOrange),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        tooltip: 'Thêm vào bộ sưu tập',
+                        onPressed: () => _openAddToCollectionSheet(recipe),
+                        icon: const Icon(Icons.bookmark_add_outlined,
                             color: AppTheme.primaryOrange),
                       ),
                     ),
@@ -556,8 +612,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primaryOrange
-                                        .withOpacity(0.1),
+                                    color:
+                                        AppTheme.primaryOrange.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -593,7 +649,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                             _SectionCard(
                               icon: Icons.health_and_safety_outlined,
                               title: 'Giá trị dinh dưỡng',
-                              child: _NutritionGrid(nutrition: recipe.nutrition),
+                              child:
+                                  _NutritionGrid(nutrition: recipe.nutrition),
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -611,8 +668,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                     onPressed: (recipe.ingredients.isEmpty ||
                                             _addingToShoppingList)
                                         ? null
-                                        : () =>
-                                            _addIngredientsToShoppingList(recipe),
+                                        : () => _addIngredientsToShoppingList(
+                                            recipe),
                                     icon: Icon(
                                       _addingToShoppingList
                                           ? Icons.hourglass_empty
@@ -768,8 +825,9 @@ class _AuthorBanner extends StatelessWidget {
         CircleAvatar(
           radius: 22,
           backgroundColor: AppTheme.primaryOrange.withOpacity(0.2),
-          backgroundImage:
-              (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
+          backgroundImage: (avatar != null && avatar.isNotEmpty)
+              ? NetworkImage(avatar)
+              : null,
           child: (avatar == null || avatar.isEmpty)
               ? Text(
                   displayName.substring(0, 1).toUpperCase(),
@@ -1181,7 +1239,8 @@ class _RatingCommentTile extends StatelessWidget {
               Row(
                 children: List.generate(5, (index) {
                   if (index < ratingValue) {
-                    return const Icon(Icons.star, size: 16, color: Colors.amber);
+                    return const Icon(Icons.star,
+                        size: 16, color: Colors.amber);
                   }
                   return const Icon(Icons.star_border,
                       size: 16, color: Colors.amber);
