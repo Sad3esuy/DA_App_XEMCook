@@ -41,7 +41,7 @@ Color _difficultyColor(String value) {
     case 'medium':
     case 'trung binh':
     case 'trung bình':
-      return AppTheme.secondaryYellow;
+      return const Color.fromARGB(255, 230, 194, 51);
     case 'hard':
     case 'kho':
     case 'khó':
