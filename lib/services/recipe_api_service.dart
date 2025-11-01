@@ -55,8 +55,13 @@ class RecipeApiService {
           .toList(),
       'instructions': recipe.instructions
           .map((e) => {
+                'id': e.id,
                 'step': e.step,
                 'description': e.description,
+                if (e.imageUrl != null && e.imageUrl!.isNotEmpty)
+                  'imageUrl': e.imageUrl,
+                if (e.imagePublicId != null && e.imagePublicId!.isNotEmpty)
+                  'imagePublicId': e.imagePublicId,
               })
           .toList(),
     };
@@ -501,7 +506,7 @@ class RecipeApiService {
                     return map;
                   }
                   if (item is Map) {
-                    final map = Map<String, dynamic>.from(item as Map);
+                    final map = Map<String, dynamic>.from(item);
                     final url = map['url']?.toString();
                     if (url != null && url.isNotEmpty) {
                       map['url'] = resolveImageUrl(url);
@@ -836,14 +841,14 @@ class RecipeApiService {
 
   static Map<String, dynamic> _normalizeRating(dynamic value) {
     if (value is! Map) return <String, dynamic>{};
-    final map = Map<String, dynamic>.from(value as Map);
+    final map = Map<String, dynamic>.from(value);
     final imageUrl = map['imageUrl']?.toString();
     if (imageUrl != null && imageUrl.isNotEmpty) {
       map['imageUrl'] = resolveImageUrl(imageUrl);
     }
     final reviewer = map['reviewer'];
     if (reviewer is Map && reviewer.isNotEmpty) {
-      map['reviewer'] = Map<String, dynamic>.from(reviewer as Map);
+      map['reviewer'] = Map<String, dynamic>.from(reviewer);
     }
     return map;
   }
@@ -867,7 +872,7 @@ class RecipeApiService {
               return map;
             }
             if (item is Map) {
-              final map = Map<String, dynamic>.from(item as Map);
+              final map = Map<String, dynamic>.from(item);
               final url = map['url']?.toString();
               if (url != null && url.isNotEmpty) {
                 map['url'] = resolveImageUrl(url);

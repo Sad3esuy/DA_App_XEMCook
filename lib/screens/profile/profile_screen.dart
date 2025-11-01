@@ -625,26 +625,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           MenuSection(
                             title: 'Cài đặt hệ thống',
                             items: [
-                              MenuItem(
-                                icon: Icons.language_outlined,
-                                title: 'Ngôn ngữ',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const FavoritesScreen(),
-                                  ),
-                                ),
-                              ),
-                              MenuItem(
-                                icon: Icons.brightness_4_outlined,
-                                title: 'Giao diện',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MyRecipesScreen(),
-                                  ),
-                                ),
-                              ),
+                              // MenuItem(
+                              //   icon: Icons.language_outlined,
+                              //   title: 'Ngôn ngữ',
+                              //   onTap: () => Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder: (_) => const FavoritesScreen(),
+                              //     ),
+                              //   ),
+                              // ),
+                              // MenuItem(
+                              //   icon: Icons.brightness_4_outlined,
+                              //   title: 'Giao diện',
+                              //   onTap: () => Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder: (_) => const MyRecipesScreen(),
+                              //     ),
+                              //   ),
+                              // ),
                               MenuItem(
                                 icon: Icons.circle_notifications_outlined,
                                 title: 'Thông báo',

@@ -29,15 +29,30 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   final List<Map<String, String>> _ingredients = [
     {'name': '', 'quantity': '', 'unit': ''},
   ];
-  final List<Map<String, dynamic>> _instructions = [
-    {'step': 1, 'description': ''},
-  ];
+  final List<Map<String, dynamic>> _instructions = [];
+
+  Map<String, dynamic> _emptyInstruction({
+    String? id,
+    String description = '',
+    String imageUrl = '',
+    String imagePublicId = '',
+  }) {
+    return {
+      'id': id,
+      'description': description,
+      'imageDataUri': '',
+      'imageUrl': imageUrl,
+      'imagePublicId': imagePublicId,
+      'removeImage': false,
+    };
+  }
 
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
+    _instructions.add(_emptyInstruction());
     if (widget.recipeId != null) {
       _loadInitial(widget.recipeId!);
     }
@@ -67,10 +82,15 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             }));
       _instructions
         ..clear()
-        ..addAll(r.instructions.map((e) => {
-              'step': e.step,
-              'description': e.description,
-            }));
+        ..addAll(r.instructions.map((e) => _emptyInstruction(
+              id: e.id,
+              description: e.description,
+              imageUrl: e.imageUrl ?? '',
+              imagePublicId: e.imagePublicId ?? '',
+            )));
+      if (_instructions.isEmpty) {
+        _instructions.add(_emptyInstruction());
+      }
       setState(() {});
     } catch (e) {
       if (mounted) {
@@ -137,16 +157,40 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       final ing = _ingredients
           .where((e) => (e['name'] ?? '').trim().isNotEmpty)
           .toList();
-      final steps = _instructions
-          .where((e) => (e['description'] ?? '').trim().isNotEmpty)
-          .toList()
-          .asMap()
-          .entries
-          .map((entry) => {
-                'step': entry.key + 1,
-                'description': entry.value['description']
-              })
+      final filteredInstructions = _instructions
+          .where((e) => ((e['description'] ?? '') as String).trim().isNotEmpty)
           .toList();
+      final steps = <Map<String, dynamic>>[];
+      for (var i = 0; i < filteredInstructions.length; i++) {
+        final item = filteredInstructions[i];
+        final desc = ((item['description'] ?? '') as String).trim();
+        final payload = <String, dynamic>{
+          'step': i + 1,
+          'description': desc,
+        };
+        final id = item['id'];
+        if (widget.recipeId != null && id is String && id.trim().isNotEmpty) {
+          payload['id'] = id;
+        }
+
+        final dataUri = ((item['imageDataUri'] ?? '') as String).trim();
+        if (dataUri.isNotEmpty) {
+          payload['imageUpload'] = dataUri;
+        } else if (item['removeImage'] == true) {
+          payload['removeImage'] = true;
+        } else {
+          final imageUrl = ((item['imageUrl'] ?? '') as String).trim();
+          if (imageUrl.isNotEmpty) {
+            payload['imageUrl'] = imageUrl;
+            final imagePublicId =
+                ((item['imagePublicId'] ?? '') as String).trim();
+            if (imagePublicId.isNotEmpty) {
+              payload['imagePublicId'] = imagePublicId;
+            }
+          }
+        }
+        steps.add(payload);
+      }
 
       if (widget.recipeId == null) {
         await RecipeApiService.createRecipeFromFields(
@@ -187,7 +231,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               ..add({'name': '', 'quantity': '', 'unit': ''});
             _instructions
               ..clear()
-              ..add({'step': 1, 'description': ''});
+              ..add(_emptyInstruction());
           });
         }
       } else {
@@ -352,10 +396,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                       _buildAddButton(
                         label: 'Thêm bước',
                         onPressed: () => setState(() {
-                          _instructions.add({
-                            'step': _instructions.length + 1,
-                            'description': '',
-                          });
+                          _instructions.add(_emptyInstruction());
                         }),
                       ),
                     ],
@@ -1127,8 +1168,166 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
+          const SizedBox(height: 16),
+          _buildInstructionImagePicker(index, instruction),
         ],
       ),
+    );
+  }
+
+  Future<void> _pickInstructionImage(int index) async {
+    if (index < 0 || index >= _instructions.length) return;
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1280,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    final mime = picked.mimeType ?? 'image/jpeg';
+    final bytes = await picked.readAsBytes();
+    final b64 = base64Encode(bytes);
+    setState(() {
+      _instructions[index]['imageDataUri'] = 'data:$mime;base64,$b64';
+      _instructions[index]['removeImage'] = false;
+    });
+  }
+
+  void _removeInstructionImage(int index) {
+    if (index < 0 || index >= _instructions.length) return;
+    final currentUrl =
+        ((_instructions[index]['imageUrl'] ?? '') as String).trim();
+    final currentData =
+        ((_instructions[index]['imageDataUri'] ?? '') as String).trim();
+    final hadExisting = currentUrl.isNotEmpty && currentData.isEmpty;
+    setState(() {
+      _instructions[index]['imageDataUri'] = '';
+      if (hadExisting) {
+        _instructions[index]['imageUrl'] = '';
+        _instructions[index]['imagePublicId'] = '';
+      }
+      _instructions[index]['removeImage'] = hadExisting;
+    });
+  }
+
+  Widget? _resolveInstructionImagePreview(Map<String, dynamic> instruction) {
+    final dataUri = ((instruction['imageDataUri'] ?? '') as String).trim();
+    if (dataUri.isNotEmpty) {
+      return _buildDataImage(dataUri);
+    }
+    final imageUrl = ((instruction['imageUrl'] ?? '') as String).trim();
+    if (imageUrl.isEmpty) return null;
+    if (imageUrl.startsWith('data:image')) {
+      return _buildDataImage(imageUrl);
+    }
+    return _buildNetworkImage(imageUrl);
+  }
+
+  Widget _buildInstructionImagePicker(
+      int index, Map<String, dynamic> instruction) {
+    final preview = _resolveInstructionImagePreview(instruction);
+    final hasImage = preview != null;
+    final actionLabel = hasImage ? 'Thay ảnh' : 'Thêm ảnh';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.photo_outlined,
+                size: 18,
+                color: AppTheme.primaryOrange,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Ảnh minh họa',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                // Nút thêm hoặc thay ảnh
+                IconButton(
+                  onPressed: () => _pickInstructionImage(index),
+                  icon: Icon(
+                    hasImage
+                        ? Icons
+                            .refresh_rounded // đổi thành icon refresh cho dễ hiểu
+                        : Icons.add_photo_alternate_outlined,
+                    size: 22,
+                    color: AppTheme.primaryOrange,
+                  ),
+                  tooltip: hasImage
+                      ? 'Thay ảnh'
+                      : 'Thêm ảnh', // ✅ tooltip thân thiện
+                ),
+
+                // Nút xóa (chỉ hiển thị khi có ảnh)
+                if (hasImage)
+                  IconButton(
+                    onPressed: () => _removeInstructionImage(index),
+                    icon: const Icon(
+                      Icons.close_outlined,
+                      size: 22,
+                      color: AppTheme.errorRed,
+                    ),
+                    tooltip:
+                        'Xóa ảnh', // ✅ tooltip giúp người dùng hiểu rõ chức năng
+                  ),
+              ],
+            )
+          ],
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => _pickInstructionImage(index),
+          child: Container(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: hasImage
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(13),
+                    child: SizedBox.expand(child: preview!),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 36,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Nhấn để thêm ảnh cho bước',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ],
     );
   }
 

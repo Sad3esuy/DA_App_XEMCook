@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:test_ui_app/model/instruction.dart';
 import 'package:test_ui_app/model/ingredient.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/auth_service.dart';
@@ -964,49 +967,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                         ...recipe.instructions.asMap().entries.map((entry) {
                           final index = entry.key;
                           final step = entry.value;
-                          return Container(
-                            margin: EdgeInsets.only(
+                          return Padding(
+                            padding: EdgeInsets.only(
                               bottom: index == recipe.instructions.length - 1
                                   ? 0
-                                  : 20,
+                                  : 4,
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primaryOrange,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 6),
-                                    child: Text(
-                                      step.description,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(
-                                            height: 1.6,
-                                            color: Colors.grey.shade700,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            child: _buildInstructionStepCard(
+                              context: context,
+                              step: step,
+                              index: index,
+                              total: recipe.instructions.length,
                             ),
                           );
                         }).toList(),
@@ -1153,6 +1124,256 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildInstructionStepCard({
+    required BuildContext context,
+    required Instruction step,
+    required int index,
+    required int total,
+  }) {
+    final rawInstructionImage = (step.imageUrl ?? '').trim();
+    final normalizedInstructionImage =
+        rawInstructionImage.startsWith('data:image')
+            ? rawInstructionImage
+            : RecipeApiService.resolveImageUrl(rawInstructionImage);
+    final hasInstructionImage = normalizedInstructionImage.isNotEmpty;
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: index == total - 1 ? 0 : 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Step Header with highlight background
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(208, 221, 240, 232),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Bước ${index + 1}/$total',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                fontSize: 16,
+              ),
+            ),
+          ),
+
+          // Step Image (if available) - Show before description
+          if (hasInstructionImage) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _buildInstructionStepImage(
+                  normalizedInstructionImage,
+                ),
+              ),
+            ),
+          ],
+
+          // Step Description with time highlighting
+          SizedBox(height: hasInstructionImage ? 16 : 12),
+          _buildInstructionDescription(context, step.description),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionDescription(BuildContext context, String rawText) {
+    final trimmed = rawText.trim();
+    final theme = Theme.of(context);
+    final baseStyle = theme.textTheme.bodyLarge?.copyWith(
+          height: 1.7,
+          color: Colors.black87,
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+        ) ??
+        const TextStyle(
+          height: 1.7,
+          color: Colors.black87,
+          fontSize: 17,
+        );
+
+    if (trimmed.isEmpty) {
+      return Text(
+        trimmed,
+        style: baseStyle,
+      );
+    }
+
+    // Pattern để match các dạng thời gian
+    final timePattern = RegExp(
+      r'\b\d+(?:[.,]\d+)?\s*(?:h|hr|hrs|hour|hours|m|min|mins|minute|minutes|phút|giờ)\b',
+      caseSensitive: false,
+    );
+    final matches = timePattern.allMatches(trimmed).toList();
+
+    if (matches.isEmpty) {
+      return Text(
+        trimmed,
+        style: baseStyle,
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    var lastIndex = 0;
+
+    for (final match in matches) {
+      // Text trước time badge
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(text: trimmed.substring(lastIndex, match.start)));
+      }
+
+      final matchText = trimmed.substring(match.start, match.end).trim();
+
+      // Time badge với icon clock và màu cam
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: AppTheme.primaryOrange,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  matchText,
+                  style: baseStyle.copyWith(
+                    color: AppTheme.primaryOrange,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Text sau time badge cuối cùng
+    if (lastIndex < trimmed.length) {
+      spans.add(TextSpan(text: trimmed.substring(lastIndex)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: baseStyle,
+        children: spans,
+      ),
+    );
+  }
+
+  Widget _buildInstructionStepImage(String source) {
+    if (source.startsWith('data:image')) {
+      final parts = source.split(',');
+      final encoded =
+          parts.length > 1 ? parts.sublist(1).join(',') : parts.first;
+      try {
+        final bytes = base64Decode(encoded);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildImageError();
+          },
+        );
+      } catch (_) {
+        return _buildImageError();
+      }
+    }
+
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildImageError();
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+
+        return Container(
+          color: Colors.grey.shade100,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: AppTheme.primaryOrange,
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Đang tải ảnh...',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageError() {
+    return Container(
+      color: Colors.grey.shade100,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 40,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Không thể tải ảnh',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

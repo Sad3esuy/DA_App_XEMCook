@@ -92,7 +92,8 @@ class Recipe {
           .toList(),
       instructions: (json['instructions'] as List<dynamic>? ?? const [])
           .map((e) => Instruction.fromJson(e))
-          .toList(),
+          .toList()
+            ..sort((a, b) => a.step.compareTo(b.step)),
       ratings: (json['ratings'] as List<dynamic>? ?? const [])
           .map((e) {
             if (e is Map<String, dynamic>) {
