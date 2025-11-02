@@ -549,10 +549,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     ),
                   ),
                   actions: [
-                    _ActionButton(
-                      icon: Icons.share_outlined,
-                      onPressed: () => _shareRecipe(recipe),
-                    ),
+                    // _ActionButton(
+                    //   icon: Icons.share_outlined,
+                    //   onPressed: () => _shareRecipe(recipe),
+                    // ),
                     _ActionButton(
                       icon: Icons.bookmark_add_outlined,
                       onPressed: () => _openAddToCollectionSheet(recipe),
