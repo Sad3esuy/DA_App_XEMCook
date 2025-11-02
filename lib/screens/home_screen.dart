@@ -4,10 +4,12 @@ import '../model/home_feed.dart';
 import '../model/user.dart';
 import '../services/auth_service.dart';
 import '../services/recipe_api_service.dart';
+import '../services/notification_api_service.dart';
 import '../theme/app_theme.dart';
 import 'recipe/recipe_collection_screen.dart';
 import 'recipe/recipe_detail_screen.dart';
 import 'recipe/recipe_form_screen.dart';
+import 'notifications/notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<HomeFeed> _homeFeedFuture;
   late final PageController _recipeOfTheDayController;
   int _recipeOfTheDayIndex = 0;
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -30,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _recipeOfTheDayController = PageController(viewportFraction: 0.88);
     _loadUserData();
     _homeFeedFuture = _fetchHomeFeed();
+    _loadNotificationSummary();
   }
 
   Future<HomeFeed> _fetchHomeFeed() {
@@ -45,6 +49,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _loadNotificationSummary() async {
+    try {
+      final summary = await NotificationApiService.getSummary();
+      if (!mounted) return;
+      setState(() {
+        _unreadNotificationCount = summary.unreadCount;
+      });
+    } catch (_) {
+      // Ignore summary errors silently for now.
+    }
+  }
+
   Future<void> _refreshHomeFeed() {
     final future = _fetchHomeFeed();
     setState(() {
@@ -54,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_recipeOfTheDayController.hasClients) {
       _recipeOfTheDayController.jumpToPage(0);
     }
+    _loadNotificationSummary();
     return future;
   }
 
@@ -294,10 +311,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Color.fromARGB(255, 71, 186, 232).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            color: AppTheme.primaryOrange,
-            onPressed: () {},
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  color: AppTheme.primaryOrange,
+                  onPressed: () async {
+                    await Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
+                    );
+                    if (!mounted) return;
+                    await _loadNotificationSummary();
+                  },
+                ),
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(231, 248, 41, 41),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      _unreadNotificationCount > 9
+                          ? '9+'
+                          : _unreadNotificationCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],

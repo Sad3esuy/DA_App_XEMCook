@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'push_notification_service.dart';
 // Import models của bạn
 import '../model/user.dart';
 import '../model/auth.dart';
@@ -410,6 +411,7 @@ class AuthService {
         if (result.user != null) {
           await saveUser(result.user!);
         }
+        await PushNotificationService.syncTokenWithBackend();
       }
 
       return result;
@@ -429,6 +431,7 @@ class AuthService {
       ).timeout(const Duration(seconds: 10));
 
       // Xóa token và user data dù API có thành công hay không
+      await PushNotificationService.unregisterToken();
       await removeToken();
       
       // Đăng xuất khỏi Google nếu có
@@ -437,6 +440,7 @@ class AuthService {
       return _parseAuthResponse(jsonDecode(response.body));
     } catch (e) {
       // Vẫn xóa token nếu có lỗi
+      await PushNotificationService.unregisterToken();
       await removeToken();
       await signOutGoogle();
       return _handleException(e);

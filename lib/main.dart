@@ -1,3 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,9 +8,14 @@ import 'theme/app_theme.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/auth/welcome_screen.dart';
+import 'services/push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await _initializeFirebase();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await PushNotificationService.initialize();
 
   // Cấu hình status bar
   SystemChrome.setSystemUIOverlayStyle(
@@ -18,6 +26,14 @@ void main() async {
   );
 
   runApp(const XEMCookApp());
+}
+
+Future<void> _initializeFirebase() async {
+  try {
+    await Firebase.initializeApp();
+  } catch (error) {
+    debugPrint('Firebase initialization error: $error');
+  }
 }
 
 class XEMCookApp extends StatelessWidget {
