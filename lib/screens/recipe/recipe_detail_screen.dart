@@ -13,6 +13,7 @@ import 'package:test_ui_app/screens/shopping/add_to_list_bottom_sheet.dart';
 import 'package:test_ui_app/screens/recipe/reviews/recipe_review_form_screen.dart';
 import 'package:test_ui_app/screens/recipe/reviews/recipe_reviews_screen.dart';
 import 'package:test_ui_app/screens/recipe/reviews/widgets/rating_comment_tile.dart';
+import 'package:test_ui_app/screens/profile/chef_profile_screen.dart';
 import 'package:share_plus/share_plus.dart';
 
 String _difficultyLabel(String value) {
@@ -1419,56 +1420,87 @@ class _AuthorBanner extends StatelessWidget {
         (recipe.authorName != null && recipe.authorName!.trim().isNotEmpty)
             ? recipe.authorName!.trim()
             : 'Ẩn danh';
+    final authorId = (recipe.authorId ?? recipe.userId ?? '').trim();
+    final canOpenProfile = authorId.isNotEmpty;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
-            backgroundImage: (avatar != null && avatar.isNotEmpty)
-                ? NetworkImage(avatar)
-                : null,
-            child: (avatar == null || avatar.isEmpty)
-                ? Text(
-                    displayName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryOrange,
-                      fontSize: 20,
+        splashColor: AppTheme.primaryOrange.withOpacity(0.1),
+        highlightColor: AppTheme.primaryOrange.withOpacity(0.05),
+        onTap: canOpenProfile
+            ? () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChefProfileScreen(
+                      userId: authorId,
+                      initialName: displayName,
+                      initialAvatar: avatar,
                     ),
-                  )
-                : null,
+                  ),
+                );
+              }
+            : null,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Text(
-                  displayName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+                  backgroundImage: (avatar != null && avatar.isNotEmpty)
+                      ? NetworkImage(avatar)
+                      : null,
+                  child: (avatar == null || avatar.isEmpty)
+                      ? Text(
+                          displayName.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryOrange,
+                            fontSize: 20,
+                          ),
+                        )
+                      : null,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Người tạo công thức',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
                       ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Người tạo công thức',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
+                if (canOpenProfile)
+                  Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey.shade400,
+                    size: 24,
+                  ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
