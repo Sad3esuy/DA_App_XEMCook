@@ -77,9 +77,15 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
         'Chef profile';
 
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: Text(title),
-        backgroundColor: AppTheme.lightCream,
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: SafeArea(
         child: _buildBody(),
@@ -116,27 +122,71 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
+          // Profile Header
           SliverToBoxAdapter(
             child: _ProfileHeader(
               profile: profile,
               fallbackAvatar: widget.initialAvatar,
             ),
           ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 24),
-          ),
-          SliverToBoxAdapter(
-            child: _CollectionsSection(collections: profile.collections),
-          ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 24),
-          ),
+          
+          // Collections Section - only show if there are public collections
+          if (profile.collections.isNotEmpty) ...[
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            SliverToBoxAdapter(
+              child: _CollectionsSection(collections: profile.collections),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          ] else
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          
+          // Recipes Header
+          if (profile.recipes.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Text(
+                      'Công thức',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textDark,
+                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${profile.recipes.length}',
+                        style: const TextStyle(
+                          color: AppTheme.primaryOrange,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          
+          if (profile.recipes.isNotEmpty)
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          
+          // Recipes Grid
           if (profile.recipes.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
               sliver: SliverGrid(
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 12,
@@ -163,14 +213,14 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
           else
             const SliverToBoxAdapter(
               child: _EmptySectionMessage(
+                icon: Icons.restaurant_menu_outlined,
                 title: 'Chưa có công thức công khai',
                 subtitle:
                     'Khi chef này chia sẻ công thức, chúng sẽ xuất hiện ở đây.',
               ),
             ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 24),
-          ),
+          
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
     );
@@ -224,13 +274,6 @@ class _ProfileHeader extends StatelessWidget {
                   color: AppTheme.textDark,
                 ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            user.email,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textLight,
-                ),
-          ),
           if (bio.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
@@ -241,27 +284,6 @@ class _ProfileHeader extends StatelessWidget {
                   ),
             ),
           ],
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              StatItem(
-                icon: Icons.restaurant_menu,
-                label: 'Công thức',
-                value: stats.totalRecipes.toString(),
-              ),
-              StatItem(
-                icon: Icons.folder_special,
-                label: 'Bộ sưu tập',
-                value: stats.totalCollections.toString(),
-              ),
-              StatItem(
-                icon: Icons.favorite_rounded,
-                label: 'Yêu thích',
-                value: stats.totalFavorites.toString(),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -311,21 +333,38 @@ class _CollectionsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Bộ sưu tập công khai',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textDark,
+          Row(
+            children: [
+              Text(
+                'Bộ sưu tập',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textDark,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              if (collections.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${collections.length}',
+                    style: const TextStyle(
+                      color: AppTheme.accentGreen,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
+            ],
           ),
-          const SizedBox(height: 12),
-          if (collections.isEmpty)
-            const _EmptySectionMessage(
-              title: 'Chưa có bộ sưu tập công khai',
-              subtitle:
-                  'Khi chef này chia sẻ bộ sưu tập, chúng sẽ hiển thị ở đây.',
-            )
-          else
+          const SizedBox(height: 16),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -365,12 +404,85 @@ class _CollectionsSection extends StatelessWidget {
   ];
 }
 
+class _CollectionCard extends StatelessWidget {
+  const _CollectionCard({
+    required this.title,
+    required this.recipeCount,
+    required this.backgroundColor,
+    required this.iconColor,
+  });
+
+  final String title;
+  final int recipeCount;
+  final Color backgroundColor;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: iconColor.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.folder_rounded,
+              color: iconColor,
+              size: 24,
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: AppTheme.textDark,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$recipeCount công thức',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textLight.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptySectionMessage extends StatelessWidget {
   const _EmptySectionMessage({
+    required this.icon,
     required this.title,
     this.subtitle,
   });
 
+  final IconData icon;
   final String title;
   final String? subtitle;
 
@@ -378,28 +490,47 @@ class _EmptySectionMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.lightCream,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: AppTheme.primaryOrange.withOpacity(0.6),
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
           Text(
             title,
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textDark,
                 ),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               subtitle!,
+              textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.textLight,
+                    height: 1.5,
                   ),
             ),
           ],
@@ -419,32 +550,53 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.sentiment_dissatisfied,
-              color: AppTheme.primaryOrange,
-              size: 48,
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.sentiment_dissatisfied,
+                color: AppTheme.primaryOrange,
+                size: 48,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
             if (onRetry != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: onRetry,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
                 ),
-                child: const Text('Thử lại'),
+                child: const Text(
+                  'Thử lại',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
               ),
             ],
           ],
