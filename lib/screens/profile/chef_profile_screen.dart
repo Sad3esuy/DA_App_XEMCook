@@ -131,14 +131,14 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
           ),
           
           // Collections Section - only show if there are public collections
-          if (profile.collections.isNotEmpty) ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
-            SliverToBoxAdapter(
-              child: _CollectionsSection(collections: profile.collections),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
-          ] else
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          // if (profile.collections.isNotEmpty) ...[
+          //   const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          //   SliverToBoxAdapter(
+          //     child: _CollectionsSection(collections: profile.collections),
+          //   ),
+          //   const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          // ] else
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
           
           // Recipes Header
           if (profile.recipes.isNotEmpty)
@@ -321,159 +321,159 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-class _CollectionsSection extends StatelessWidget {
-  const _CollectionsSection({required this.collections});
+// class _CollectionsSection extends StatelessWidget {
+//   const _CollectionsSection({required this.collections});
 
-  final List<Collection> collections;
+//   final List<Collection> collections;
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'Bộ sưu tập',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textDark,
-                    ),
-              ),
-              const SizedBox(width: 8),
-              if (collections.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${collections.length}',
-                    style: const TextStyle(
-                      color: AppTheme.accentGreen,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                mainAxisExtent: 100,
-              ),
-              itemCount: collections.length,
-              itemBuilder: (context, index) {
-                final collection = collections[index];
-                final colors = _collectionPalette;
-                final color = colors[index % colors.length];
-                return CollectionSummaryCard(
-                  title: collection.name,
-                  subtitle: '${collection.recipeCount} công thức',
-                  backgroundColor: color,
-                  icon: Icons.folder_rounded,
-                  iconColor: AppTheme.accentGreen,
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(horizontal: 20),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Row(
+//             children: [
+//               Text(
+//                 'Bộ sưu tập',
+//                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
+//                       fontWeight: FontWeight.w700,
+//                       color: AppTheme.textDark,
+//                     ),
+//               ),
+//               const SizedBox(width: 8),
+//               if (collections.isNotEmpty)
+//                 Container(
+//                   padding: const EdgeInsets.symmetric(
+//                     horizontal: 10,
+//                     vertical: 4,
+//                   ),
+//                   decoration: BoxDecoration(
+//                     color: AppTheme.accentGreen.withOpacity(0.1),
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                   child: Text(
+//                     '${collections.length}',
+//                     style: const TextStyle(
+//                       color: AppTheme.accentGreen,
+//                       fontWeight: FontWeight.w600,
+//                       fontSize: 13,
+//                     ),
+//                   ),
+//                 ),
+//             ],
+//           ),
+//           const SizedBox(height: 16),
+//             GridView.builder(
+//               shrinkWrap: true,
+//               physics: const NeverScrollableScrollPhysics(),
+//               gridDelegate:
+//                   const SliverGridDelegateWithFixedCrossAxisCount(
+//                 crossAxisCount: 2,
+//                 mainAxisSpacing: 12,
+//                 crossAxisSpacing: 12,
+//                 mainAxisExtent: 100,
+//               ),
+//               itemCount: collections.length,
+//               itemBuilder: (context, index) {
+//                 final collection = collections[index];
+//                 final colors = _collectionPalette;
+//                 final color = colors[index % colors.length];
+//                 return CollectionSummaryCard(
+//                   title: collection.name,
+//                   subtitle: '${collection.recipeCount} công thức',
+//                   backgroundColor: color,
+//                   icon: Icons.folder_rounded,
+//                   iconColor: AppTheme.accentGreen,
+//                 );
+//               },
+//             ),
+//         ],
+//       ),
+//     );
+//   }
 
-  static const _collectionPalette = [
-    Color.fromARGB(208, 238, 240, 221),
-    Color.fromARGB(208, 232, 240, 221),
-    Color.fromARGB(208, 240, 221, 232),
-    Color.fromARGB(208, 221, 232, 240),
-    Color.fromARGB(208, 240, 232, 221),
-    Color.fromARGB(208, 232, 221, 240),
-  ];
-}
+//   static const _collectionPalette = [
+//     Color.fromARGB(208, 238, 240, 221),
+//     Color.fromARGB(208, 232, 240, 221),
+//     Color.fromARGB(208, 240, 221, 232),
+//     Color.fromARGB(208, 221, 232, 240),
+//     Color.fromARGB(208, 240, 232, 221),
+//     Color.fromARGB(208, 232, 221, 240),
+//   ];
+// }
 
-class _CollectionCard extends StatelessWidget {
-  const _CollectionCard({
-    required this.title,
-    required this.recipeCount,
-    required this.backgroundColor,
-    required this.iconColor,
-  });
+// class _CollectionCard extends StatelessWidget {
+//   const _CollectionCard({
+//     required this.title,
+//     required this.recipeCount,
+//     required this.backgroundColor,
+//     required this.iconColor,
+//   });
 
-  final String title;
-  final int recipeCount;
-  final Color backgroundColor;
-  final Color iconColor;
+//   final String title;
+//   final int recipeCount;
+//   final Color backgroundColor;
+//   final Color iconColor;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: iconColor.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.folder_rounded,
-              color: iconColor,
-              size: 24,
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: AppTheme.textDark,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$recipeCount công thức',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textLight.withOpacity(0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Container(
+//       padding: const EdgeInsets.all(16),
+//       decoration: BoxDecoration(
+//         color: backgroundColor,
+//         borderRadius: BorderRadius.circular(16),
+//         border: Border.all(
+//           color: iconColor.withOpacity(0.1),
+//           width: 1,
+//         ),
+//       ),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//         children: [
+//           Container(
+//             padding: const EdgeInsets.all(8),
+//             decoration: BoxDecoration(
+//               color: Colors.white,
+//               borderRadius: BorderRadius.circular(10),
+//             ),
+//             child: Icon(
+//               Icons.folder_rounded,
+//               color: iconColor,
+//               size: 24,
+//             ),
+//           ),
+//           Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               Text(
+//                 title,
+//                 maxLines: 1,
+//                 overflow: TextOverflow.ellipsis,
+//                 style: const TextStyle(
+//                   fontWeight: FontWeight.w600,
+//                   fontSize: 14,
+//                   color: AppTheme.textDark,
+//                 ),
+//               ),
+//               const SizedBox(height: 2),
+//               Text(
+//                 '$recipeCount công thức',
+//                 style: TextStyle(
+//                   fontSize: 12,
+//                   color: AppTheme.textLight.withOpacity(0.8),
+//                   fontWeight: FontWeight.w500,
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 class _EmptySectionMessage extends StatelessWidget {
   const _EmptySectionMessage({

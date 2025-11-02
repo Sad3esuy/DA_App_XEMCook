@@ -53,7 +53,7 @@ class CollectionSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,

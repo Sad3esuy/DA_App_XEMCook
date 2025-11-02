@@ -487,7 +487,7 @@ class _CollectionsGrid extends StatelessWidget {
         final color = colors[index % colors.length];
         return CollectionSummaryCard(
           title: collection.name,
-          subtitle: '${collection.recipeCount} items',
+          subtitle: '${collection.recipeCount} công thức',
           backgroundColor: color,
           icon: Icons.folder_rounded,
           iconColor: AppTheme.accentGreen,
