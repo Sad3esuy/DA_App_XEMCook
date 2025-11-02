@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/app_notification.dart';
+import '../model/notification_settings.dart';
 
 class NotificationSummary {
   final int totalCount;
@@ -235,5 +236,49 @@ class NotificationApiService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Failed to unregister FCM token (${response.statusCode})');
     }
+  }
+
+  static Future<NotificationSettings> getSettings() async {
+    final response = await http.get(
+      _buildUri(pathSuffix: 'settings'),
+      headers: await _authHeaders(),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to load notification settings (${response.statusCode})');
+    }
+
+    final payload = jsonDecode(response.body) as Map<String, dynamic>? ?? {};
+    final data = payload['data'] as Map<String, dynamic>? ?? const {};
+    return NotificationSettings.fromJson(data);
+  }
+
+  static Future<NotificationSettings> updateSettings({
+    bool? pushRecipe,
+    bool? pushSocial,
+    bool? pushReminder,
+    bool? pushSystem,
+  }) async {
+    final body = <String, dynamic>{
+      if (pushRecipe != null) 'pushRecipe': pushRecipe,
+      if (pushSocial != null) 'pushSocial': pushSocial,
+      if (pushReminder != null) 'pushReminder': pushReminder,
+      if (pushSystem != null) 'pushSystem': pushSystem,
+      'updatedAtClient': DateTime.now().toIso8601String(),
+    };
+
+    final response = await http.patch(
+      _buildUri(pathSuffix: 'settings'),
+      headers: await _authHeaders(),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to update notification settings (${response.statusCode})');
+    }
+
+    final payload = jsonDecode(response.body) as Map<String, dynamic>? ?? {};
+    final data = payload['data'] as Map<String, dynamic>? ?? const {};
+    return NotificationSettings.fromJson(data);
   }
 }

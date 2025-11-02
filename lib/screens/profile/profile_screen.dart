@@ -17,6 +17,7 @@ import 'widget/menuSection.dart';
 import '../recipe/favorite_screen.dart';
 import 'about_us_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -651,7 +652,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const MyRecipesScreen(),
+                                    builder: (_) => const NotificationSettingsScreen(),
                                   ),
                                 ),
                               ),
