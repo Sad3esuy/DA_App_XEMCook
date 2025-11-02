@@ -10,6 +10,7 @@ import 'recipe/recipe_collection_screen.dart';
 import 'recipe/recipe_detail_screen.dart';
 import 'recipe/recipe_form_screen.dart';
 import 'notifications/notifications_screen.dart';
+import 'profile/chef_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -249,7 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                     ),
                     const SizedBox(height: 16),
-                    _CreatorStrip(creators: creators),
+                    _CreatorStrip(
+                      creators: creators,
+                      onTap: _openChefProfile,
+                    ),
                   ],
                 ],
               ),
@@ -271,6 +275,18 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openCreateRecipe() {
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
+    );
+  }
+
+  void _openChefProfile(_AuthorProfile profile) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => ChefProfileScreen(
+          userId: profile.id,
+          initialName: profile.name,
+          initialAvatar: profile.avatar,
+        ),
+      ),
     );
   }
 
@@ -447,13 +463,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final seen = <String>{};
     final result = <_AuthorProfile>[];
     for (final recipe in recipes) {
-      final rawName = recipe.authorName ?? '';
-      final name = rawName.trim();
-      if (name.isEmpty) continue;
-      final key = name.toLowerCase();
-      if (seen.add(key)) {
+      final id = (recipe.authorId ?? recipe.userId ?? '').trim();
+      final name = (recipe.authorName ?? '').trim();
+      if (id.isEmpty || name.isEmpty) continue;
+      if (seen.add(id)) {
         result.add(
           _AuthorProfile(
+            id: id,
             name: name,
             avatar: recipe.authorAvatar,
           ),
@@ -811,9 +827,10 @@ class _LatestRecipeCard extends StatelessWidget {
 }
 
 class _CreatorStrip extends StatelessWidget {
-  const _CreatorStrip({required this.creators});
+  const _CreatorStrip({required this.creators, this.onTap});
 
   final List<_AuthorProfile> creators;
+  final ValueChanged<_AuthorProfile>? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -824,38 +841,48 @@ class _CreatorStrip extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         itemBuilder: (context, index) {
           final profile = creators[index];
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.secondaryYellow.withValues(alpha: 0.8),
-                ),
-                alignment: Alignment.center,
-                child: _AuthorAvatar(
-                  avatarUrl: profile.avatar,
-                  name: profile.name,
-                  size: 60,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 72,
-                child: Text(
-                  profile.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color.fromARGB(255, 44, 44, 44),
-                        fontWeight: FontWeight.w600,
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: onTap == null ? null : () => onTap!(profile),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.secondaryYellow.withValues(alpha: 0.8),
                       ),
+                      alignment: Alignment.center,
+                      child: _AuthorAvatar(
+                        avatarUrl: profile.avatar,
+                        name: profile.name,
+                        size: 60,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: 72,
+                      child: Text(
+                        profile.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color.fromARGB(255, 44, 44, 44),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           );
         },
         separatorBuilder: (_, __) => const SizedBox(width: 18),
@@ -1190,8 +1217,9 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _AuthorProfile {
-  const _AuthorProfile({required this.name, this.avatar});
+  const _AuthorProfile({required this.id, required this.name, this.avatar});
 
+  final String id;
   final String name;
   final String? avatar;
 }

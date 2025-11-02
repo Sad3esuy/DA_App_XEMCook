@@ -597,32 +597,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          MenuSection(
-                            title: 'Nội dung',
-                            items: [
-                              MenuItem(
-                                icon: Icons.favorite_border_outlined,
-                                title: 'Món yêu thích',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const FavoritesScreen(),
-                                  ),
-                                ),
-                              ),
-                              MenuItem(
-                                icon: Icons.mode_comment_outlined,
-                                title: 'Đánh giá của tôi',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MyRecipesScreen(),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
+                          // MenuSection(
+                          //   title: 'Nội dung',
+                          //   items: [
+                          //     MenuItem(
+                          //       icon: Icons.favorite_border_outlined,
+                          //       title: 'Món yêu thích',
+                          //       onTap: () => Navigator.push(
+                          //         context,
+                          //         MaterialPageRoute(
+                          //           builder: (_) => const FavoritesScreen(),
+                          //         ),
+                          //       ),
+                          //     ),
+                          //     MenuItem(
+                          //       icon: Icons.mode_comment_outlined,
+                          //       title: 'Đánh giá của tôi',
+                          //       onTap: () => Navigator.push(
+                          //         context,
+                          //         MaterialPageRoute(
+                          //           builder: (_) => const MyRecipesScreen(),
+                          //         ),
+                          //       ),
+                          //     ),
+                          //   ],
+                          // ),
+                          // const SizedBox(height: 24),
                           MenuSection(
                             title: 'Cài đặt hệ thống',
                             items: [
