@@ -132,6 +132,11 @@ class _RecipeReviewFormScreenState extends State<RecipeReviewFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Đánh giá công thức'),
+        titleTextStyle: TextStyle(
+            fontSize: 24,
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Poppins'),
       ),
       body: SafeArea(
         child: ListView(

@@ -208,7 +208,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               'Thông báo',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 18,
+                fontSize: 24,
               ),
             ),
             if (unreadCount > 0) ...[

@@ -159,10 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (topRated.isNotEmpty) ...[
                     _SectionHeader(
-                      title: 'Top Rated',
-                      actionLabel: 'See all',
+                      title: 'Đánh giá cao nhất',
+                      actionLabel: 'Xem tất cả',
                       onActionTap: () => _openCollection(
-                        const RecipeCollectionConfig(title: 'Top Rated'),
+                        const RecipeCollectionConfig(title: 'Đánh giá cao nhất'),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -174,11 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (mostViewed.isNotEmpty) ...[
                     _SectionHeader(
-                      title: 'Most Viewed',
-                      actionLabel: 'See all',
+                      title: 'Xem nhiều nhất',
+                      actionLabel: 'Xem tất cả',
                       onActionTap: () => _openCollection(
                         const RecipeCollectionConfig(
-                          title: 'Most Viewed',
+                          title: 'Xem nhiều nhất',
                           initialSort: RecipeCollectionSort.views,
                         ),
                       ),
@@ -192,12 +192,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (quickMeals.isNotEmpty) ...[
                     _SectionHeader(
-                      title: 'Quick Meals - 20 min or less',
-                      actionLabel: 'See all',
+                      title: 'Món nhanh - 20 phút',
+                      actionLabel: 'Xem tất cả',
                       onActionTap: () => _openCollection(
                         const RecipeCollectionConfig(
-                          title: 'Quick Meals',
-                          subtitle: 'Ready in 20 minutes or less',
+                          title: 'Món nhanh',
+                          subtitle: 'Sẵn sàng trong 20 phút hoặc ít hơn',
                           initialMaxTotalTime: 20,
                           initialSort: RecipeCollectionSort.totalTime,
                         ),
@@ -213,12 +213,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (feed.seasonal.hasRecipes &&
                       seasonalRecipes.isNotEmpty) ...[
                     _SectionHeader(
-                      title: 'Seasonal Picks',
-                      actionLabel: 'See all',
+                      title: 'Món theo mùa',
+                      actionLabel: 'Xem tất cả',
                       onActionTap: () => _openCollection(
                         RecipeCollectionConfig(
                           title: feed.seasonal.label,
-                          subtitle: 'Seasonal picks curated for you',
+                          subtitle: 'Món theo mùa được tuyển chọn cho bạn',
                           initialDietTags: feed.seasonal.tags,
                           initialTimeframe: 'month',
                         ),
@@ -244,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (creators.isNotEmpty) ...[
                     Text(
-                      'Favorite community chefs',
+                      'Đầu bếp yêu thích',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hello, $displayName 👋',
+                'Hé lô, $displayName 👋',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppTheme.textDark,
@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'What would you like to cook today?',
+                'Hôm nay ăn gì?',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppTheme.textLight,
                     ),
@@ -386,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Recipe of the Day',
+          'Công thức trong ngày',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -436,27 +436,27 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _formatRecipeOfDaySubtitle(RecipeOfDaySection section) {
     final parsed = section.parsedDate;
     if (parsed == null) {
-      return section.date.isEmpty ? null : 'Daily picks • ${section.date}';
+      return section.date.isEmpty ? null : 'Lựa chọn hàng ngày • ${section.date}';
     }
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
+      'Th1',
+      'Th2',
+      'Th3',
+      'Th4',
+      'Th5',
+      'Th6',
+      'Th7',
+      'Th8',
+      'Th9',
+      'Th10',
+      'Th11',
+      'Th12'
     ];
     final weekday = weekdays[parsed.weekday - 1];
     final month = months[parsed.month - 1];
     final day = parsed.day.toString().padLeft(2, '0');
-    return 'Daily picks • $weekday, $day $month';
+    return 'Lựa chọn hàng ngày • $weekday, $day $month';
   }
 
   List<_AuthorProfile> _collectCreators(List<Recipe> recipes) {
@@ -484,7 +484,7 @@ class _FeaturedRecipeBanner extends StatelessWidget {
   const _FeaturedRecipeBanner({
     required this.recipe,
     required this.onTap,
-    this.label = "Today's Recipe",
+    this.label = "Công thức hôm nay",
   });
 
   final Recipe recipe;
@@ -494,7 +494,7 @@ class _FeaturedRecipeBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authorName =
-        (recipe.authorName ?? '').isEmpty ? 'Unknown chef' : recipe.authorName!;
+        (recipe.authorName ?? '').isEmpty ? 'Đầu bếp ẩn danh' : recipe.authorName!;
     final likes =
         recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
 
@@ -619,7 +619,7 @@ class _LatestRecipesStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (recipes.isEmpty) {
       return Text(
-        'Add more recipes to keep the inspiration flowing.',
+        'Thêm công thức để giữ nguồn cảm hứng.',
         style: Theme.of(context).textTheme.bodyMedium,
       );
     }
@@ -797,7 +797,7 @@ class _LatestRecipeCard extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            authorName.isEmpty ? 'Anonymous' : authorName,
+                            authorName.isEmpty ? 'Ẩn danh' : authorName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodyMedium?.copyWith(
@@ -1157,7 +1157,7 @@ class _ErrorState extends StatelessWidget {
             const Icon(Icons.error_outline, size: 48, color: AppTheme.errorRed),
             const SizedBox(height: 16),
             Text(
-              'Something went wrong',
+              'Đã xảy ra lỗi',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -1169,7 +1169,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: onRetry,
-              child: const Text('Try again'),
+              child: const Text('Thử lại'),
             ),
           ],
         ),
@@ -1195,19 +1195,19 @@ class _EmptyState extends StatelessWidget {
                 size: 48, color: AppTheme.primaryOrange),
             const SizedBox(height: 16),
             Text(
-              'Let us cook something',
+              'Hãy cùng nấu nướng',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              'Create your first recipe to see it featured here.',
+              'Tạo công thức đầu tiên của bạn để xem nó được giới thiệu ở đây.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: onCreate,
-              child: const Text('Add a recipe'),
+              child: const Text('Thêm công thức'),
             ),
           ],
         ),
