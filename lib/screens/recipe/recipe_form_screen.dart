@@ -23,7 +23,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   String _category = 'other';
   String _imageDataUri = '';
   String? _existingImageUrl;
-  final _tags = TextEditingController();
+  final List<String> _tagList = [];
+  final _tagInputController = TextEditingController();
   bool _isPublic = false;
 
   final List<Map<String, String>> _ingredients = [
@@ -69,7 +70,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       _servings.text = r.servings.toString();
       _difficulty = r.difficulty;
       _category = r.category;
-      _tags.text = r.tags.join(',');
+      _tagList.clear();
+      _tagList.addAll(r.tags);
       _existingImageUrl = (r.imageUrl.isNotEmpty) ? r.imageUrl : null;
       _imageDataUri = '';
       _isPublic = r.isPublic;
@@ -148,11 +150,6 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
     setState(() => _busy = true);
     try {
-      final tagList = _tags.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
       final imgUpload = _imageDataUri.isNotEmpty ? _imageDataUri : null;
       final ing = _ingredients
           .where((e) => (e['name'] ?? '').trim().isNotEmpty)
@@ -202,7 +199,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           servings: int.tryParse(_servings.text) ?? 1,
           difficulty: _difficulty,
           imageUpload: imgUpload,
-          tags: tagList,
+          tags: _tagList,
           ingredients: ing,
           instructions: steps,
           isPublic: _isPublic,
@@ -224,7 +221,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             _category = 'other';
             _imageDataUri = '';
             _existingImageUrl = null;
-            _tags.clear();
+            _tagList.clear();
             _isPublic = false;
             _ingredients
               ..clear()
@@ -245,7 +242,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           servings: int.tryParse(_servings.text),
           difficulty: _difficulty,
           imageUpload: imgUpload,
-          tags: tagList,
+          tags: _tagList,
           ingredients: ing,
           instructions: steps,
           isPublic: _isPublic,
@@ -310,6 +307,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                         hint: 'Mô tả ngắn gọn về món ăn...',
                         maxLines: 3,
                       ),
+                      const SizedBox(height: 12),
+                      _buildTagInput(),
                     ],
                   ),
 
@@ -839,6 +838,152 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     );
   }
 
+  Widget _buildTagInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Tags',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '(${_tagList.length})',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // Input field to add new tag
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _tagInputController,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Thêm tag (VD: món Việt, món chay...)',
+                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  prefixIcon: Icon(Icons.label_outline, size: 18, color: Colors.grey[400]),
+                ),
+                onSubmitted: (value) {
+                  _addTag(value);
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: IconButton(
+                onPressed: () {
+                  _addTag(_tagInputController.text);
+                },
+                icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                padding: const EdgeInsets.all(10),
+                constraints: const BoxConstraints(),
+              ),
+            ),
+          ],
+        ),
+        
+        // Display tags as chips
+        if (_tagList.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _tagList.map((tag) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppTheme.primaryOrange.withOpacity(0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.label,
+                      size: 14,
+                      color: AppTheme.primaryOrange,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      tag,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.primaryOrange,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _tagList.remove(tag);
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: AppTheme.primaryOrange,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _addTag(String value) {
+    final tag = value.trim();
+    if (tag.isEmpty) return;
+    if (_tagList.contains(tag)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tag này đã tồn tại')),
+      );
+      return;
+    }
+    setState(() {
+      _tagList.add(tag);
+      _tagInputController.clear();
+    });
+  }
+
   Widget _buildIngredientInput(int index, Map<String, String> ingredient) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1227,7 +1372,6 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       int index, Map<String, dynamic> instruction) {
     final preview = _resolveInstructionImagePreview(instruction);
     final hasImage = preview != null;
-    final actionLabel = hasImage ? 'Thay ảnh' : 'Thêm ảnh';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1304,7 +1448,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             child: hasImage
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(13),
-                    child: SizedBox.expand(child: preview!),
+                    child: SizedBox.expand(child: preview),
                   )
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
