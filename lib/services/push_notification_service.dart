@@ -1,6 +1,7 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'auth_service.dart';
 import 'notification_api_service.dart';
@@ -10,24 +11,55 @@ class PushNotificationService {
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final AuthService _authService = AuthService();
+  static final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
+  static const AndroidNotificationChannel _androidChannel =
+      AndroidNotificationChannel(
+    'high_importance_channel',
+    'Thông báo quan trọng',
+    description: 'Kênh dùng cho các thông báo quan trọng của ứng dụng',
+    importance: Importance.high,
+  );
 
   static bool _initialized = false;
+  static bool _localNotificationsInitialized = false;
   static String? _currentToken;
 
   static Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
 
+    await _setupLocalNotifications();
     await _requestPermissionIfNeeded();
 
-    _messaging.onTokenRefresh.listen((token) {
-      _handleTokenUpdate(token);
-    });
+    _messaging.onTokenRefresh.listen(_handleTokenUpdate);
+    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
     final token = await _messaging.getToken();
     if (token != null) {
       await _handleTokenUpdate(token);
     }
+  }
+
+  static Future<void> _setupLocalNotifications() async {
+    if (_localNotificationsInitialized) return;
+
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosInit = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iosInit,
+    );
+
+    await _localNotifications.initialize(initSettings);
+
+    final androidPlugin = _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.createNotificationChannel(_androidChannel);
+
+    _localNotificationsInitialized = true;
   }
 
   static Future<void> _requestPermissionIfNeeded() async {
@@ -88,6 +120,42 @@ class PushNotificationService {
       await NotificationApiService.unregisterToken(_currentToken!);
     } catch (error) {
       debugPrint('PushNotificationService: unregister token failed $error');
+    }
+  }
+
+  static Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    final notification = message.notification;
+
+    if (notification == null) {
+      return;
+    }
+
+    const androidDetails = AndroidNotificationDetails(
+      'high_importance_channel',
+      'Thông báo quan trọng',
+      channelDescription: 'Kênh dùng cho các thông báo quan trọng của ứng dụng',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const iosDetails = DarwinNotificationDetails();
+
+    try {
+      await _localNotifications.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        const NotificationDetails(
+          android: androidDetails,
+          iOS: iosDetails,
+        ),
+        payload: message.data['notificationId'],
+      );
+    } catch (error) {
+      debugPrint(
+        'PushNotificationService: show local notification failed $error',
+      );
     }
   }
 
