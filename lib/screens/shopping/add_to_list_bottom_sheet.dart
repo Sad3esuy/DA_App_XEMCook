@@ -8,9 +8,11 @@ class AddToShoppingListSheet extends StatefulWidget {
   const AddToShoppingListSheet({
     super.key,
     required this.recipe,
+    this.initialServings,
   });
 
   final Recipe recipe;
+  final double? initialServings;
 
   @override
   State<AddToShoppingListSheet> createState() => _AddToShoppingListSheetState();
@@ -27,7 +29,12 @@ class _AddToShoppingListSheetState extends State<AddToShoppingListSheet> {
   @override
   void initState() {
     super.initState();
-    _targetServings = widget.recipe.servings.toDouble();
+    final initial = widget.initialServings;
+    if (initial != null && initial > 0) {
+      _targetServings = initial;
+    } else {
+      _targetServings = widget.recipe.servings.toDouble();
+    }
     final state = _service.state;
     if (state.lists.isEmpty) {
       _creatingList = true;
@@ -189,8 +196,8 @@ class _AddToShoppingListSheetState extends State<AddToShoppingListSheet> {
                 icon: Icons.remove,
                 onPressed: _targetServings > 0.5
                     ? () => setState(() {
-                          _targetServings = (_targetServings - 0.5).clamp(
-                              0.5, double.infinity);
+                          _targetServings = (_targetServings - 0.5)
+                              .clamp(0.5, double.infinity);
                         })
                     : null,
               ),
@@ -247,7 +254,9 @@ class _AddToShoppingListSheetState extends State<AddToShoppingListSheet> {
           alignment: Alignment.center,
           child: Icon(
             icon,
-            color: onPressed != null ? Theme.of(context).primaryColor : Colors.grey.shade400,
+            color: onPressed != null
+                ? Theme.of(context).primaryColor
+                : Colors.grey.shade400,
             size: 24,
           ),
         ),
@@ -341,9 +350,7 @@ class _AddToShoppingListSheetState extends State<AddToShoppingListSheet> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected
-                    ? theme.primaryColor
-                    : Colors.grey.shade200,
+                color: isSelected ? theme.primaryColor : Colors.grey.shade200,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -351,9 +358,7 @@ class _AddToShoppingListSheetState extends State<AddToShoppingListSheet> {
               children: [
                 Icon(
                   isNewList ? Icons.add_circle_outline : Icons.list_rounded,
-                  color: isSelected
-                      ? theme.primaryColor
-                      : Colors.grey.shade600,
+                  color: isSelected ? theme.primaryColor : Colors.grey.shade600,
                   size: 22,
                 ),
                 const SizedBox(width: 12),

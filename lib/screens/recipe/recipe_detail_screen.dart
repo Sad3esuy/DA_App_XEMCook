@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:test_ui_app/model/instruction.dart';
+import 'package:test_ui_app/model/ingredient.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/auth_service.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
@@ -6,6 +10,9 @@ import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/screens/recipe/collection/add_recipe_to_collection_sheet.dart';
 import 'package:test_ui_app/screens/recipe/recipe_form_screen.dart';
 import 'package:test_ui_app/screens/shopping/add_to_list_bottom_sheet.dart';
+import 'package:test_ui_app/screens/recipe/reviews/recipe_review_form_screen.dart';
+import 'package:test_ui_app/screens/recipe/reviews/recipe_reviews_screen.dart';
+import 'package:test_ui_app/screens/recipe/reviews/widgets/rating_comment_tile.dart';
 import 'package:share_plus/share_plus.dart';
 
 String _difficultyLabel(String value) {
@@ -37,7 +44,7 @@ Color _difficultyColor(String value) {
     case 'medium':
     case 'trung binh':
     case 'trung bình':
-      return AppTheme.secondaryYellow;
+      return const Color.fromARGB(255, 230, 194, 51);
     case 'hard':
     case 'kho':
     case 'khó':
@@ -87,6 +94,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   int _total = 0;
   String? _currentUserId;
   bool _addingToShoppingList = false;
+  int? _servingsOverride;
 
   @override
   void initState() {
@@ -163,123 +171,208 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => AddToShoppingListSheet(recipe: recipe),
+      builder: (_) => AddToShoppingListSheet(
+        recipe: recipe,
+        initialServings: _resolveCurrentServings(recipe).toDouble(),
+      ),
     );
     if (mounted) {
       setState(() => _addingToShoppingList = false);
       if (result == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đã thêm nguyên liệu từ "${recipe.title}" vào danh sách'),
+            content:
+                Text('Đã thêm nguyên liệu từ "${recipe.title}" vào danh sách'),
           ),
         );
       }
     }
   }
 
-  Future<void> _openRateSheet(String recipeId) async {
-    int selected = 5;
-    final commentCtrl = TextEditingController();
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: StatefulBuilder(
-            builder: (context, setSheetState) => Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const Text('Đánh giá công thức',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (i) {
-                      final idx = i + 1;
-                      return IconButton(
-                        onPressed: () => setSheetState(() => selected = idx),
-                        icon: Icon(
-                            idx <= selected ? Icons.star : Icons.star_border,
-                            color: AppTheme.primaryOrange,
-                            size: 32),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: commentCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Nhận xét của bạn (tuỳ chọn)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Gửi đánh giá',
-                          style: TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-    if (result == true) {
-      try {
-        final data = await RecipeApiService.rateRecipe(recipeId, selected,
-            comment: commentCtrl.text.trim());
-        setState(() {
-          _avg = (data['avgRating'] ?? 0.0) is num
-              ? (data['avgRating'] + 0.0)
-              : 0.0;
-          _total = data['totalRatings'] ?? _total;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Đã gửi đánh giá')));
-        }
-        await _reload();
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Lỗi đánh giá: $e')));
-        }
+  int _resolveCurrentServings(Recipe recipe) {
+    final base = recipe.servings > 0 ? recipe.servings : 1;
+    final override = _servingsOverride;
+    if (override == null || override <= 0) return base;
+    return override;
+  }
+
+  void _changeServings(Recipe recipe, int delta) {
+    final base = recipe.servings > 0 ? recipe.servings : 1;
+    final current = _resolveCurrentServings(recipe);
+    var next = current + delta;
+    if (next < 1) next = 1;
+    if (next > 200) next = 200;
+    if (next == current) return;
+    setState(() {
+      _servingsOverride = next == base ? null : next;
+    });
+  }
+
+  double _servingsMultiplier(Recipe recipe) {
+    final base = recipe.servings > 0 ? recipe.servings : 1;
+    final current = _resolveCurrentServings(recipe);
+    if (base <= 0) return 1;
+    return current / base;
+  }
+
+  double? _parseQuantityValue(String quantity) {
+    final raw = quantity.trim();
+    if (raw.isEmpty) return null;
+    final normalized = raw.replaceAll(',', '.');
+
+    final mixedMatch =
+        RegExp(r'^(\d+)\s+(\d+)\s*/\s*(\d+)$').firstMatch(normalized);
+    if (mixedMatch != null) {
+      final whole = double.tryParse(mixedMatch.group(1)!);
+      final numerator = double.tryParse(mixedMatch.group(2)!);
+      final denominator = double.tryParse(mixedMatch.group(3)!);
+      if (whole != null && numerator != null && denominator != null) {
+        if (denominator == 0) return whole + numerator;
+        return whole + numerator / denominator;
       }
     }
+
+    final fractionMatch = RegExp(r'^(\d+)\s*/\s*(\d+)$').firstMatch(normalized);
+    if (fractionMatch != null) {
+      final numerator = double.tryParse(fractionMatch.group(1)!);
+      final denominator = double.tryParse(fractionMatch.group(2)!);
+      if (numerator != null && denominator != null) {
+        if (denominator == 0) return numerator;
+        return numerator / denominator;
+      }
+    }
+
+    final rangeMatch = RegExp(r'^(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)$')
+        .firstMatch(normalized);
+    if (rangeMatch != null) {
+      final start = double.tryParse(rangeMatch.group(1)!);
+      final end = double.tryParse(rangeMatch.group(2)!);
+      if (start != null && end != null) {
+        return (start + end) / 2;
+      }
+    }
+
+    final numericMatch = RegExp(r'^-?\d+(?:\.\d+)?$').firstMatch(normalized);
+    if (numericMatch != null) {
+      return double.tryParse(numericMatch.group(0)!);
+    }
+
+    final leadingMatch = RegExp(r'^-?\d+(?:\.\d+)?').firstMatch(normalized);
+    if (leadingMatch != null) {
+      return double.tryParse(leadingMatch.group(0)!);
+    }
+
+    return null;
+  }
+
+  String _formatScaledQuantity(Ingredient ingredient, double multiplier) {
+    final value = _parseQuantityValue(ingredient.quantity);
+    final unit = ingredient.unit.trim();
+    if (value == null) {
+      final quantity = ingredient.quantity.trim();
+      if (quantity.isEmpty) return unit;
+      return unit.isEmpty ? quantity : '$quantity $unit';
+    }
+    final scaled = value * multiplier;
+    final formatted = _formatNumber(scaled);
+    return unit.isEmpty ? formatted : '$formatted $unit';
+  }
+
+  String _formatNumber(double value) {
+    final isInteger = (value - value.round()).abs() < 1e-6;
+    if (isInteger) return value.round().toString();
+    final precision = value < 1 ? 2 : 1;
+    var result = value.toStringAsFixed(precision);
+    result = result.replaceAll(RegExp(r'0+$'), '');
+    result = result.replaceAll(RegExp(r'\.$'), '');
+    return result;
+  }
+
+  Map<String, dynamic>? _getUserRating(Recipe recipe) {
+    if (_currentUserId == null) return null;
+
+    for (final rating in recipe.ratings) {
+      final reviewer = rating['reviewer'];
+      String? reviewerId;
+
+      if (reviewer is Map) {
+        reviewerId = reviewer['_id']?.toString() ?? reviewer['id']?.toString();
+      }
+
+      if (reviewerId == _currentUserId) {
+        return rating;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _openRateForm(Recipe recipe) async {
+    if (_busy) return;
+
+    final existingRating = _getUserRating(recipe);
+
+    if (existingRating != null) {
+      await _openReviewsScreen(recipe);
+      return;
+    }
+
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => RecipeReviewFormScreen(
+          recipeId: recipe.id,
+          recipeTitle: recipe.title,
+        ),
+      ),
+    );
+
+    if (!mounted || result == null) return;
+
+    final avg = result['avgRating'];
+    final total = result['totalRatings'];
+
+    setState(() {
+      if (avg is num) {
+        _avg = avg.toDouble();
+      }
+      if (total is int) {
+        _total = total;
+      }
+    });
+
+    await _reload();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Đã gửi đánh giá')));
+  }
+
+  Future<void> _openReviewsScreen(Recipe recipe) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RecipeReviewsScreen(
+          recipeId: recipe.id,
+          recipeTitle: recipe.title,
+          initialAvg: _avg,
+          initialTotal: recipe.totalRatings,
+          initialTotalImages: recipe.totalRatingImages,
+          initialRatings:
+              List<Map<String, dynamic>>.from(recipe.ratings, growable: false),
+          initialImagesPreview: List<Map<String, dynamic>>.from(
+              recipe.ratingImagesPreview,
+              growable: false),
+        ),
+      ),
+    );
+  }
+
+  String _reviewSummaryText(Recipe recipe) {
+    final parts = <String>['${recipe.totalRatings} đánh giá'];
+    if (recipe.totalRatingImages > 0) {
+      parts.add('${recipe.totalRatingImages} ảnh');
+    }
+    return parts.join(' • ');
   }
 
   Future<void> _delete(String id) async {
@@ -296,11 +389,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 child: TextButton(
                   onPressed: () => Navigator.pop(context, false),
                   style: TextButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(95, 220, 220, 220),
+                    backgroundColor: Colors.grey.shade200,
                     foregroundColor: Colors.black87,
-                    overlayColor: Colors.grey.withOpacity(0.2),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -314,8 +405,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   onPressed: () => Navigator.pop(context, true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.errorRed,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -351,42 +441,65 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white,
       body: RefreshIndicator(
         onRefresh: _reload,
+        color: AppTheme.primaryOrange,
         child: FutureBuilder<Recipe>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                  child:
-                      CircularProgressIndicator(color: AppTheme.primaryOrange));
+                child: CircularProgressIndicator(color: AppTheme.primaryOrange),
+              );
             }
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(32.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppTheme.errorRed, size: 48),
-                      const SizedBox(height: 16),
-                      Text('Có lỗi xảy ra',
-                          style: Theme.of(context).textTheme.titleLarge,
-                          textAlign: TextAlign.center),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorRed.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.error_outline,
+                          color: AppTheme.errorRed,
+                          size: 48,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Có lỗi xảy ra',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: 8),
-                      Text(snapshot.error.toString(),
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          textAlign: TextAlign.center),
-                      const SizedBox(height: 20),
+                      Text(
+                        snapshot.error.toString(),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: _reload,
                         icon: const Icon(Icons.refresh),
                         label: const Text('Thử lại'),
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
+                            horizontal: 32,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -410,93 +523,69 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             final canManage = _currentUserId != null &&
                 (recipe.userId ?? '').isNotEmpty &&
                 recipe.userId == _currentUserId;
+            final currentServings = _resolveCurrentServings(recipe);
+            final servingsMultiplier = _servingsMultiplier(recipe);
 
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                // Header với ảnh
+                // Hero Image Header
                 SliverAppBar(
                   pinned: true,
-                  expandedHeight: 300,
+                  expandedHeight: 450,
                   backgroundColor: Colors.white,
                   surfaceTintColor: Colors.white,
+                  elevation: 0,
                   leading: Container(
-                    margin: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_outlined,
-                          color: Colors.black87),
+                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
                   actions: [
-                    Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        tooltip: 'Chia sẻ',
-                        onPressed: () => _shareRecipe(recipe),
-                        icon: const Icon(Icons.share_outlined,
-                            color: AppTheme.primaryOrange),
-                      ),
+                    _ActionButton(
+                      icon: Icons.share_outlined,
+                      onPressed: () => _shareRecipe(recipe),
                     ),
-                    Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        tooltip: 'Thêm vào bộ sưu tập',
-                        onPressed: () => _openAddToCollectionSheet(recipe),
-                        icon: const Icon(Icons.bookmark_add_outlined,
-                            color: AppTheme.primaryOrange),
-                      ),
+                    _ActionButton(
+                      icon: Icons.bookmark_add_outlined,
+                      onPressed: () => _openAddToCollectionSheet(recipe),
                     ),
-                    Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        tooltip: _favorite ? 'Bỏ yêu thích' : 'Yêu thích',
-                        onPressed: _busy
-                            ? null
-                            : () async {
-                                setState(() => _busy = true);
-                                try {
-                                  final isFav =
-                                      await RecipeApiService.toggleFavorite(
-                                          recipe.id);
-                                  if (!mounted) return;
-                                  setState(() => _favorite = isFav);
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Lỗi: $e')),
-                                    );
-                                  }
-                                } finally {
-                                  if (mounted) setState(() => _busy = false);
+                    _ActionButton(
+                      icon: _favorite ? Icons.favorite : Icons.favorite_border,
+                      color: _favorite ? AppTheme.errorRed : null,
+                      onPressed: _busy
+                          ? null
+                          : () async {
+                              setState(() => _busy = true);
+                              try {
+                                final isFav =
+                                    await RecipeApiService.toggleFavorite(
+                                        recipe.id);
+                                if (!mounted) return;
+                                setState(() => _favorite = isFav);
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Lỗi: $e')),
+                                  );
                                 }
-                              },
-                        icon: Icon(
-                            _favorite ? Icons.favorite : Icons.favorite_border,
-                            color: AppTheme.primaryOrange),
-                      ),
+                              } finally {
+                                if (mounted) setState(() => _busy = false);
+                              }
+                            },
                     ),
                     if (canManage)
                       Container(
-                        margin: const EdgeInsets.all(8),
+                        margin:
+                            const EdgeInsets.only(right: 16, top: 8, bottom: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                         child: PopupMenuButton<String>(
@@ -505,8 +594,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               final updated = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        RecipeFormScreen(recipeId: recipe.id)),
+                                  builder: (_) =>
+                                      RecipeFormScreen(recipeId: recipe.id),
+                                ),
                               );
                               if (updated == true) {
                                 _reload();
@@ -515,287 +605,518 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                               _delete(recipe.id);
                             }
                           },
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           itemBuilder: (context) => const [
                             PopupMenuItem(value: 'edit', child: Text('Sửa')),
                             PopupMenuItem(
                               value: 'delete',
-                              child: Text('Xoá',
-                                  style: TextStyle(color: AppTheme.errorRed)),
+                              child: Text(
+                                'Xoá',
+                                style: TextStyle(color: AppTheme.errorRed),
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                      )
+                    else
+                      const SizedBox(width: 16),
                   ],
                   flexibleSpace: FlexibleSpaceBar(
                     background: Hero(
                       tag: 'recipe_${recipe.id}',
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondaryYellow.withOpacity(0.2),
-                        ),
-                        child: recipe.imageUrl.isEmpty
-                            ? const Center(
-                                child: Icon(Icons.restaurant_menu,
-                                    size: 80, color: AppTheme.textLight))
-                            : Image.network(
-                                recipe.imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stack) =>
-                                    const Center(
-                                  child: Icon(Icons.broken_image_outlined,
-                                      size: 80, color: AppTheme.textLight),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          recipe.imageUrl.isEmpty
+                              ? Container(
+                                  color: Colors.grey.shade100,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.restaurant_menu,
+                                      size: 80,
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                )
+                              : Image.network(
+                                  recipe.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stack) =>
+                                      Container(
+                                    color: Colors.grey.shade100,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.broken_image_outlined,
+                                        size: 80,
+                                        color: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          // Subtle overlay for better readability
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 100,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.3),
+                                  ],
                                 ),
                               ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
 
-                // Nội dung chính
+                // Main Content
                 SliverToBoxAdapter(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Tiêu đề
-                          Text(
-                            recipe.title,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textDark,
-                                ),
-                          ),
-                          const SizedBox(height: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          recipe.title,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                height: 1.2,
+                                color: Colors.black87,
+                              ),
+                        ),
+                        const SizedBox(height: 20),
 
-                          // Thông tin tác giả
-                          _AuthorBanner(recipe: recipe),
-                          const SizedBox(height: 20),
+                        // Author Info
+                        _AuthorBanner(recipe: recipe),
+                        const SizedBox(height: 24),
 
-                          // Thông tin cơ bản
-                          _InfoCard(
-                            recipe: recipe,
-                            totalTime: totalTime,
-                            categoryLabel: categoryLabel,
-                            difficultyLabel: difficultyLabel,
-                            difficultyColor: difficultyColor,
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Rating summary
-                          if (_avg > 0 || _total > 0) ...[
-                            _RatingCard(
-                              avg: _avg,
-                              total: _total,
-                              onRate: () => _openRateSheet(recipe.id),
-                              busy: _busy,
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-
-                          // Tags
-                          if (recipe.tags.isNotEmpty) ...[
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: recipe.tags.map((t) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        AppTheme.primaryOrange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    '#$t',
-                                    style: const TextStyle(
-                                      color: AppTheme.primaryOrange,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Mô tả
-                          _SectionCard(
-                            icon: Icons.description_outlined,
-                            title: 'Mô tả',
-                            child: Text(
-                              recipe.description,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(height: 1.6),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Dinh dưỡng
-                          if (recipe.nutrition.isNotEmpty) ...[
-                            _SectionCard(
-                              icon: Icons.health_and_safety_outlined,
-                              title: 'Giá trị dinh dưỡng',
-                              child:
-                                  _NutritionGrid(nutrition: recipe.nutrition),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-
-                          // Nguyên liệu
-                          _SectionCard(
-                            icon: Icons.shopping_bag_outlined,
-                            title: 'Nguyên liệu (${recipe.ingredients.length})',
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: (recipe.ingredients.isEmpty ||
-                                            _addingToShoppingList)
-                                        ? null
-                                        : () => _addIngredientsToShoppingList(
-                                            recipe),
-                                    icon: Icon(
-                                      _addingToShoppingList
-                                          ? Icons.hourglass_empty
-                                          : Icons.add_shopping_cart_outlined,
-                                      size: 20,
-                                    ),
-                                    label: Text(_addingToShoppingList
-                                        ? 'Đang thêm...'
-                                        : 'Thêm vào danh sách mua sắm'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                ...recipe.ingredients.map((i) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 6),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            margin: const EdgeInsets.only(
-                                                top: 8, right: 12),
-                                            decoration: const BoxDecoration(
-                                              color: AppTheme.primaryOrange,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Text(
-                                              '${i.quantity} ${i.unit} - ${i.name}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.copyWith(height: 1.5),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Các bước
-                          _SectionCard(
-                            icon: Icons.format_list_numbered,
-                            title: 'Cách thực hiện',
-                            child: Column(
-                              children: recipe.instructions
-                                  .asMap()
-                                  .entries
-                                  .map((entry) {
-                                final index = entry.key;
-                                final step = entry.value;
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryOrange,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 4),
-                                          child: Text(
-                                            step.description,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(height: 1.6),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Đánh giá
-                          if (recipe.ratings.isNotEmpty) ...[
-                            _SectionCard(
-                              icon: Icons.chat_bubble_outline,
-                              title: 'Đánh giá gần đây',
-                              child: Column(
-                                children: recipe.ratings
-                                    .map((data) =>
-                                        _RatingCommentTile(data: data))
-                                    .toList(),
+                        // Quick Info Cards
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _QuickInfoCard(
+                                icon: Icons.schedule_outlined,
+                                label: '$totalTime phút',
+                                subtitle: 'Thời gian',
+                                color: AppTheme.primaryOrange,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _QuickInfoCard(
+                                icon: Icons.restaurant_outlined,
+                                label: '${recipe.servings}',
+                                subtitle: 'Khẩu phần',
+                                color: AppTheme.accentGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _QuickInfoCard(
+                                icon: Icons.signal_cellular_alt,
+                                label: difficultyLabel,
+                                subtitle: 'Độ khó',
+                                color: difficultyColor,
+                              ),
+                            ),
                           ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Description
+                        if (recipe.description.trim().isNotEmpty) ...[
+                          _SectionTitle(title: 'Mô tả'),
+                          const SizedBox(height: 12),
+                          _ExpandableDescription(
+                              description: recipe.description),
+                          const SizedBox(height: 32),
                         ],
-                      ),
+
+                        // Nutrition
+                        if (recipe.nutrition.isNotEmpty) ...[
+                          _NutritionSection(nutrition: recipe.nutrition),
+                          const SizedBox(height: 32),
+                        ],
+
+                        // Rating Section
+                        if (!canManage) ...[
+                          _RatingSection(
+                            avg: _avg,
+                            total: _total,
+                            busy: _busy,
+                            onRate: () => _openRateForm(recipe),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+
+                        // Ingredients
+                        _SectionTitle(title: 'Nguyên liệu'),
+                        const SizedBox(height: 16),
+
+                        // Servings Adjuster
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Khẩu phần',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          const Color.fromARGB(221, 60, 60, 60),
+                                    ),
+                              ),
+                              Row(
+                                children: [
+                                  _ServingsButton(
+                                    icon: Icons.remove,
+                                    enabled: currentServings > 1,
+                                    onPressed: currentServings <= 1
+                                        ? null
+                                        : () => _changeServings(recipe, -1),
+                                  ),
+                                  Container(
+                                    width: 56,
+                                    height: 40,
+                                    alignment: Alignment.center,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    child: Text(
+                                      '$currentServings',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.primaryOrange,
+                                          ),
+                                    ),
+                                  ),
+                                  _ServingsButton(
+                                    icon: Icons.add,
+                                    enabled: true,
+                                    onPressed: () => _changeServings(recipe, 1),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Ingredients List
+                        if (recipe.ingredients.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Text(
+                                'Chưa có nguyên liệu',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.grey.shade500,
+                                    ),
+                              ),
+                            ),
+                          )
+                        else ...[
+                          ...recipe.ingredients.asMap().entries.map((entry) {
+                            final ingredient = entry.value;
+                            final amount = _formatScaledQuantity(
+                              ingredient,
+                              servingsMultiplier,
+                            );
+                            final displayAmount =
+                                amount.trim().isEmpty ? '—' : amount;
+
+                            return Container(
+                              margin: EdgeInsets.only(
+                                  bottom:
+                                      entry.key == recipe.ingredients.length - 1
+                                          ? 0
+                                          : 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryOrange,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      ingredient.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      displayAmount,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.primaryOrange,
+                                          ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        const SizedBox(height: 20),
+
+                        // Add to Shopping List Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: (recipe.ingredients.isEmpty ||
+                                    _addingToShoppingList)
+                                ? null
+                                : () => _addIngredientsToShoppingList(recipe),
+                            icon: _addingToShoppingList
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppTheme.accentGreen),
+                                    ),
+                                  )
+                                : const Icon(Icons.add_shopping_cart_outlined,
+                                    size: 20),
+                            label: Text(
+                              _addingToShoppingList
+                                  ? 'Đang thêm...'
+                                  : 'Thêm vào danh sách mua sắm',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _addingToShoppingList
+                                    ? Colors.grey.shade500
+                                    : AppTheme.accentGreen,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: BorderSide(
+                                color: AppTheme.accentGreen,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppTheme.accentGreen,
+                              overlayColor:
+                                  AppTheme.accentGreen.withOpacity(0.08),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Instructions
+                        _SectionTitle(title: 'Cách thực hiện'),
+                        const SizedBox(height: 16),
+                        ...recipe.instructions.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final step = entry.value;
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index == recipe.instructions.length - 1
+                                  ? 0
+                                  : 4,
+                            ),
+                            child: _buildInstructionStepCard(
+                              context: context,
+                              step: step,
+                              index: index,
+                              total: recipe.instructions.length,
+                            ),
+                          );
+                        }).toList(),
+                        const SizedBox(height: 32),
+
+                        // Final Result Image
+                        if (recipe.imageUrl.isNotEmpty) ...[
+                          _SectionTitle(title: 'Thành phẩm'),
+                          const SizedBox(height: 16),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Image.network(
+                                recipe.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stack) =>
+                                    Container(
+                                  color: Colors.grey.shade100,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.broken_image_outlined,
+                                      size: 60,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  ),
+                                ),
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: Colors.grey.shade100,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                        color: AppTheme.primaryOrange,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Reviews Section
+                        _SectionTitle(
+                          title: 'Đánh giá',
+                          trailing: !canManage
+                              ? TextButton(
+                                  onPressed: recipe.ratings.isEmpty
+                                      ? () => _openRateForm(recipe)
+                                      : () => _openReviewsScreen(recipe),
+                                  child: Text(
+                                    recipe.ratings.isEmpty
+                                        ? 'Đánh giá'
+                                        : 'Xem tất cả',
+                                  ),
+                                )
+                              : (recipe.ratings.isNotEmpty
+                                  ? TextButton(
+                                      onPressed: () =>
+                                          _openReviewsScreen(recipe),
+                                      child: const Text('Xem tất cả'),
+                                    )
+                                  : null),
+                        ),
+                        const SizedBox(height: 16),
+
+                        if (recipe.ratings.isEmpty)
+                          _EmptyReviews(
+                            canManage: canManage,
+                            onRate: () => _openRateForm(recipe),
+                          )
+                        else ...[
+                          Text(
+                            _reviewSummaryText(recipe),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          ...recipe.ratings.take(2).map(
+                                (data) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: RatingCommentTile(
+                                    data: data,
+                                    recipeId: recipe.id,
+                                    onDeleted: _reload,
+                                  ),
+                                ),
+                              ),
+                        ],
+                        const SizedBox(height: 32),
+
+                        // Tags
+                        if (recipe.tags.isNotEmpty) ...[
+                          _SectionTitle(title: 'Tags'),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: recipe.tags.map((t) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border:
+                                      Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: Text(
+                                  '#$t',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -806,9 +1127,287 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       ),
     );
   }
+
+  Widget _buildInstructionStepCard({
+    required BuildContext context,
+    required Instruction step,
+    required int index,
+    required int total,
+  }) {
+    final rawInstructionImage = (step.imageUrl ?? '').trim();
+    final normalizedInstructionImage =
+        rawInstructionImage.startsWith('data:image')
+            ? rawInstructionImage
+            : RecipeApiService.resolveImageUrl(rawInstructionImage);
+    final hasInstructionImage = normalizedInstructionImage.isNotEmpty;
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: index == total - 1 ? 0 : 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Step Header with highlight background
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(208, 221, 240, 232),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Bước ${index + 1}/$total',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                fontSize: 16,
+              ),
+            ),
+          ),
+
+          // Step Image (if available) - Show before description
+          if (hasInstructionImage) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _buildInstructionStepImage(
+                  normalizedInstructionImage,
+                ),
+              ),
+            ),
+          ],
+
+          // Step Description with time highlighting
+          SizedBox(height: hasInstructionImage ? 16 : 12),
+          _buildInstructionDescription(context, step.description),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionDescription(BuildContext context, String rawText) {
+    final trimmed = rawText.trim();
+    final theme = Theme.of(context);
+    final baseStyle = theme.textTheme.bodyLarge?.copyWith(
+          height: 1.7,
+          color: Colors.black87,
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+        ) ??
+        const TextStyle(
+          height: 1.7,
+          color: Colors.black87,
+          fontSize: 17,
+        );
+
+    if (trimmed.isEmpty) {
+      return Text(
+        trimmed,
+        style: baseStyle,
+      );
+    }
+
+    // Pattern để match các dạng thời gian
+    final timePattern = RegExp(
+      r'\b\d+(?:[.,]\d+)?\s*(?:h|hr|hrs|hour|hours|m|min|mins|minute|minutes|phút|giờ)\b',
+      caseSensitive: false,
+    );
+    final matches = timePattern.allMatches(trimmed).toList();
+
+    if (matches.isEmpty) {
+      return Text(
+        trimmed,
+        style: baseStyle,
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    var lastIndex = 0;
+
+    for (final match in matches) {
+      // Text trước time badge
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(text: trimmed.substring(lastIndex, match.start)));
+      }
+
+      final matchText = trimmed.substring(match.start, match.end).trim();
+
+      // Time badge với icon clock và màu cam
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: AppTheme.primaryOrange,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  matchText,
+                  style: baseStyle.copyWith(
+                    color: AppTheme.primaryOrange,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Text sau time badge cuối cùng
+    if (lastIndex < trimmed.length) {
+      spans.add(TextSpan(text: trimmed.substring(lastIndex)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: baseStyle,
+        children: spans,
+      ),
+    );
+  }
+
+  Widget _buildInstructionStepImage(String source) {
+    if (source.startsWith('data:image')) {
+      final parts = source.split(',');
+      final encoded =
+          parts.length > 1 ? parts.sublist(1).join(',') : parts.first;
+      try {
+        final bytes = base64Decode(encoded);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildImageError();
+          },
+        );
+      } catch (_) {
+        return _buildImageError();
+      }
+    }
+
+    return Image.network(
+      source,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildImageError();
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+
+        return Container(
+          color: Colors.grey.shade100,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: AppTheme.primaryOrange,
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Đang tải ảnh...',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageError() {
+    return Container(
+      color: Colors.grey.shade100,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.broken_image_outlined,
+              size: 40,
+              color: Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Không thể tải ảnh',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-// Widget tác giả
+// Action Button Widget
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color? color;
+
+  const _ActionButton({
+    required this.icon,
+    required this.onPressed,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8, top: 8, bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: color ?? Colors.black87),
+        onPressed: onPressed,
+      ),
+    );
+  }
+}
+
+// Author Banner Widget
 class _AuthorBanner extends StatelessWidget {
   final Recipe recipe;
   const _AuthorBanner({required this.recipe});
@@ -820,69 +1419,7 @@ class _AuthorBanner extends StatelessWidget {
         (recipe.authorName != null && recipe.authorName!.trim().isNotEmpty)
             ? recipe.authorName!.trim()
             : 'Ẩn danh';
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: AppTheme.primaryOrange.withOpacity(0.2),
-          backgroundImage: (avatar != null && avatar.isNotEmpty)
-              ? NetworkImage(avatar)
-              : null,
-          child: (avatar == null || avatar.isEmpty)
-              ? Text(
-                  displayName.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryOrange,
-                      fontSize: 18),
-                )
-              : null,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                displayName,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              Text(
-                'Người tạo công thức',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppTheme.textLight),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
 
-// Card thông tin cơ bản
-class _InfoCard extends StatelessWidget {
-  final Recipe recipe;
-  final int totalTime;
-  final String categoryLabel;
-  final String difficultyLabel;
-  final Color difficultyColor;
-
-  const _InfoCard({
-    required this.recipe,
-    required this.totalTime,
-    required this.categoryLabel,
-    required this.difficultyLabel,
-    required this.difficultyColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -892,36 +1429,43 @@ class _InfoCard extends StatelessWidget {
       ),
       child: Row(
         children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: AppTheme.primaryOrange.withOpacity(0.1),
+            backgroundImage: (avatar != null && avatar.isNotEmpty)
+                ? NetworkImage(avatar)
+                : null,
+            child: (avatar == null || avatar.isEmpty)
+                ? Text(
+                    displayName.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryOrange,
+                      fontSize: 20,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 16),
           Expanded(
-            child: _InfoItem(
-              icon: Icons.access_time_outlined,
-              label: '$totalTime phút',
-              subtitle: 'Thời gian',
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 40,
-            color: Colors.grey.shade300,
-          ),
-          Expanded(
-            child: _InfoItem(
-              icon: Icons.restaurant_outlined,
-              label: '${recipe.servings}',
-              subtitle: 'Khẩu phần',
-            ),
-          ),
-          Container(
-            width: 1,
-            height: 40,
-            color: Colors.grey.shade300,
-          ),
-          Expanded(
-            child: _InfoItem(
-              icon: Icons.leaderboard,
-              label: difficultyLabel,
-              subtitle: 'Độ khó',
-              color: difficultyColor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Người tạo công thức',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                      ),
+                ),
+              ],
             ),
           ),
         ],
@@ -930,71 +1474,261 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-class _InfoItem extends StatelessWidget {
+// Quick Info Card Widget
+class _QuickInfoCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String subtitle;
-  final Color? color;
+  final Color color;
 
-  const _InfoItem({
+  const _QuickInfoCard({
     required this.icon,
     required this.label,
     required this.subtitle,
-    this.color,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = color ?? AppTheme.primaryOrange;
-    return Column(
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Section Title Widget
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+
+  const _SectionTitle({
+    required this.title,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(icon, color: iconColor, size: 24),
-        const SizedBox(height: 6),
         Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: iconColor,
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
               ),
-          textAlign: TextAlign.center,
         ),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textLight,
+        if (trailing != null) trailing!,
+      ],
+    );
+  }
+}
+
+// Servings Button Widget
+class _ServingsButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  const _ServingsButton({
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onPressed : null,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: enabled
+              ? const Color.fromARGB(208, 221, 240, 232)
+              : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: AppTheme.primaryOrange,
+        ),
+      ),
+    );
+  }
+}
+
+// Nutrition Section Widget
+class _NutritionSection extends StatelessWidget {
+  final Map<String, dynamic> nutrition;
+
+  const _NutritionSection({required this.nutrition});
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = nutrition.entries
+        .where((entry) =>
+            entry.value != null && entry.value.toString().trim().isNotEmpty)
+        .toList();
+
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(title: 'Dinh dưỡng'),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: entries.map((entry) {
+            return Container(
+              width: (MediaQuery.of(context).size.width - 60) / 2,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.accentGreen.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+                border:
+                    Border.all(color: AppTheme.accentGreen.withOpacity(0.2)),
               ),
-          textAlign: TextAlign.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.key.toString(),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    entry.value.toString(),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.accentGreen,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
   }
 }
 
-// Card đánh giá
-class _RatingCard extends StatelessWidget {
+// Rating Section Widget
+class _RatingSection extends StatelessWidget {
   final double avg;
   final int total;
-  final VoidCallback onRate;
   final bool busy;
+  final VoidCallback onRate;
 
-  const _RatingCard({
+  const _RatingSection({
     required this.avg,
     required this.total,
-    required this.onRate,
     required this.busy,
+    required this.onRate,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryOrange.withOpacity(0.1),
-            AppTheme.secondaryYellow.withOpacity(0.1),
+    if (avg <= 0 && total <= 0) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryOrange.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.star_outline,
+                color: AppTheme.primaryOrange,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Chưa có đánh giá',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Hãy là người đầu tiên đánh giá',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: busy ? null : onRate,
+                icon: const Icon(Icons.rate_review_outlined),
+                label: const Text('Viết đánh giá'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
           ],
         ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryOrange.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.primaryOrange.withOpacity(0.2)),
       ),
@@ -1003,57 +1737,57 @@ class _RatingCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                avg.toStringAsFixed(1),
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryOrange,
-                    ),
-              ),
-              const SizedBox(width: 12),
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    avg.toStringAsFixed(1),
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryOrange,
+                        ),
+                  ),
                   Row(
                     children: List.generate(5, (i) {
                       final full = avg.floor();
                       final hasHalf = (avg - full) >= 0.5;
                       if (i < full) {
                         return const Icon(Icons.star,
-                            color: AppTheme.primaryOrange, size: 18);
+                            color: AppTheme.primaryOrange, size: 20);
                       }
                       if (i == full && hasHalf) {
                         return const Icon(Icons.star_half,
-                            color: AppTheme.primaryOrange, size: 18);
+                            color: AppTheme.primaryOrange, size: 20);
                       }
-                      return const Icon(Icons.star_border,
-                          color: AppTheme.primaryOrange, size: 18);
+                      return Icon(Icons.star_border,
+                          color: Colors.grey.shade400, size: 20);
                     }),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$total đánh giá',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppTheme.textLight),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: busy ? null : onRate,
-              icon: const Icon(Icons.star_rate_rounded),
+              icon: const Icon(Icons.rate_review_outlined),
               label: const Text('Viết đánh giá'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 0,
               ),
             ),
           ),
@@ -1063,212 +1797,193 @@ class _RatingCard extends StatelessWidget {
   }
 }
 
-// Section card wrapper
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Widget child;
+// Expandable Description Widget
+class _ExpandableDescription extends StatefulWidget {
+  final String description;
 
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.child,
+  const _ExpandableDescription({required this.description});
+
+  @override
+  State<_ExpandableDescription> createState() => _ExpandableDescriptionState();
+}
+
+class _ExpandableDescriptionState extends State<_ExpandableDescription> {
+  bool _isExpanded = false;
+  bool _showReadMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkIfNeedsReadMore();
+    });
+  }
+
+  void _checkIfNeedsReadMore() {
+    final span = TextSpan(
+      text: widget.description,
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            height: 1.6,
+            color: Colors.grey.shade700,
+          ),
+    );
+    final tp = TextPainter(
+      text: span,
+      maxLines: 2,
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout(maxWidth: MediaQuery.of(context).size.width - 48);
+
+    if (mounted) {
+      setState(() {
+        _showReadMore = tp.didExceedMaxLines;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+          height: 1.6,
+          color: Colors.grey.shade700,
+        );
+
+    if (_isExpanded) {
+      // Khi đã expand, hiển thị toàn bộ text với nút "Thu gọn" ở cuối
+      return RichText(
+        text: TextSpan(
+          style: textStyle,
+          children: [
+            TextSpan(text: widget.description),
+            const TextSpan(text: ' '),
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isExpanded = false;
+                  });
+                },
+                child: Text(
+                  'Thu gọn',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.primaryOrange,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!_showReadMore) {
+      // Text ngắn, không cần nút
+      return Text(
+        widget.description,
+        style: textStyle,
+      );
+    }
+
+    // Text dài, hiển thị 2 dòng với nút "Xem thêm" ở cuối
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final span = TextSpan(
+          text: widget.description,
+          style: textStyle,
+        );
+
+        final tp = TextPainter(
+          text: span,
+          maxLines: 2,
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout(maxWidth: constraints.maxWidth);
+
+        final endPosition = tp.getPositionForOffset(
+          Offset(constraints.maxWidth, tp.size.height),
+        );
+
+        final endOffset = endPosition.offset;
+        String displayText = widget.description;
+
+        if (endOffset < widget.description.length) {
+          displayText = widget.description.substring(0, endOffset - 12);
+          if (displayText.endsWith(' ')) {
+            displayText = displayText.trimRight();
+          }
+          displayText += '... ';
+        }
+
+        return RichText(
+          text: TextSpan(
+            style: textStyle,
+            children: [
+              TextSpan(text: displayText),
+              WidgetSpan(
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isExpanded = true;
+                    });
+                  },
+                  child: Text(
+                    'Xem thêm',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.primaryOrange,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Empty Reviews Widget
+class _EmptyReviews extends StatelessWidget {
+  final bool canManage;
+  final VoidCallback onRate;
+
+  const _EmptyReviews({
+    required this.canManage,
+    required this.onRate,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: AppTheme.primaryOrange, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-// Grid dinh dưỡng
-class _NutritionGrid extends StatelessWidget {
-  const _NutritionGrid({required this.nutrition});
-
-  final Map<String, dynamic> nutrition;
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = nutrition.entries
-        .where((entry) =>
-            entry.value != null && entry.value.toString().trim().isNotEmpty)
-        .toList();
-    if (entries.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: entries.map((entry) {
-        final key = entry.key.toString();
-        final value = entry.value.toString();
-        return Container(
-          width: (MediaQuery.of(context).size.width - 84) / 2,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.accentGreen.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.accentGreen.withOpacity(0.3)),
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Center(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                key,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppTheme.textLight),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value,
+                'Chưa có đánh giá',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.accentGreen,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
                     ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                canManage
+                    ? 'Công thức của bạn chưa có đánh giá nào'
+                    : 'Hãy là người đầu tiên chia sẻ ý kiến của bạn',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade500,
+                    ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// Tile đánh giá
-class _RatingCommentTile extends StatelessWidget {
-  const _RatingCommentTile({required this.data});
-
-  final Map<String, dynamic> data;
-
-  @override
-  Widget build(BuildContext context) {
-    final reviewer = (data['reviewer'] as Map?) ?? const {};
-    final rawName = reviewer['fullName']?.toString().trim();
-    final displayName =
-        (rawName != null && rawName.isNotEmpty) ? rawName : 'Người dùng';
-    final ratingValue = (data['rating'] is num)
-        ? (data['rating'] as num).toInt().clamp(0, 5)
-        : 0;
-    final comment = (data['comment'] as String?)?.trim();
-    final createdAt = _formatDate(
-        data['createdAt'] as String? ?? data['updatedAt'] as String?);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppTheme.secondaryYellow.withOpacity(0.3),
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryOrange,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    if (createdAt.isNotEmpty)
-                      Text(
-                        createdAt,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppTheme.textLight),
-                      ),
-                  ],
-                ),
-              ),
-              Row(
-                children: List.generate(5, (index) {
-                  if (index < ratingValue) {
-                    return const Icon(Icons.star,
-                        size: 16, color: Colors.amber);
-                  }
-                  return const Icon(Icons.star_border,
-                      size: 16, color: Colors.amber);
-                }),
-              ),
-            ],
-          ),
-          if (comment != null && comment.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              comment,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                    color: AppTheme.textDark,
-                  ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(String? iso) {
-    if (iso == null || iso.isEmpty) return '';
-    final dt = DateTime.tryParse(iso);
-    if (dt == null) return '';
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = dt.month.toString().padLeft(2, '0');
-    return '$day/$month/${dt.year}';
+        ));
   }
 }

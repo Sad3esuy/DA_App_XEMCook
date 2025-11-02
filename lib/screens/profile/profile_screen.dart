@@ -17,6 +17,7 @@ import 'widget/menuSection.dart';
 import '../recipe/favorite_screen.dart';
 import 'about_us_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'notification_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -625,33 +626,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           MenuSection(
                             title: 'Cài đặt hệ thống',
                             items: [
-                              MenuItem(
-                                icon: Icons.language_outlined,
-                                title: 'Ngôn ngữ',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const FavoritesScreen(),
-                                  ),
-                                ),
-                              ),
-                              MenuItem(
-                                icon: Icons.brightness_4_outlined,
-                                title: 'Giao diện',
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const MyRecipesScreen(),
-                                  ),
-                                ),
-                              ),
+                              // MenuItem(
+                              //   icon: Icons.language_outlined,
+                              //   title: 'Ngôn ngữ',
+                              //   onTap: () => Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder: (_) => const FavoritesScreen(),
+                              //     ),
+                              //   ),
+                              // ),
+                              // MenuItem(
+                              //   icon: Icons.brightness_4_outlined,
+                              //   title: 'Giao diện',
+                              //   onTap: () => Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder: (_) => const MyRecipesScreen(),
+                              //     ),
+                              //   ),
+                              // ),
                               MenuItem(
                                 icon: Icons.circle_notifications_outlined,
                                 title: 'Thông báo',
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const MyRecipesScreen(),
+                                    builder: (_) => const NotificationSettingsScreen(),
                                   ),
                                 ),
                               ),

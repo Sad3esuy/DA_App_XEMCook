@@ -20,6 +20,18 @@ class RecipeApiService {
     };
   }
 
+  static String resolveImageUrl(String? url) {
+    if (url == null) return '';
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    final origin = Uri.parse(baseUrl).replace(path: '');
+    final relative = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+    return origin.resolve(relative).toString();
+  }
+
   static Map<String, dynamic> _buildBody(Recipe recipe) {
     final body = {
       'title': recipe.title,
@@ -43,8 +55,13 @@ class RecipeApiService {
           .toList(),
       'instructions': recipe.instructions
           .map((e) => {
+                'id': e.id,
                 'step': e.step,
                 'description': e.description,
+                if (e.imageUrl != null && e.imageUrl!.isNotEmpty)
+                  'imageUrl': e.imageUrl,
+                if (e.imagePublicId != null && e.imagePublicId!.isNotEmpty)
+                  'imagePublicId': e.imagePublicId,
               })
           .toList(),
     };
@@ -178,7 +195,10 @@ class RecipeApiService {
       );
       if (response.statusCode == 200) {
         final body = json.decode(response.body);
-        return Recipe.fromJson(body['data']);
+        final data = Map<String, dynamic>.from(
+            body['data'] as Map<String, dynamic>? ?? const {});
+        _normalizeRatingsPayload(data);
+        return Recipe.fromJson(data);
       } else {
         throw Exception(
             "Failed to load recipe (status: ${response.statusCode})");
@@ -297,81 +317,108 @@ class RecipeApiService {
     }
   }
 
-/// GET current user's favorites (list of recipes) + lấy thêm authorName, authorAvatar
-static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
-  try {
-    final uri = Uri.parse("$baseUrl/favorites").replace(queryParameters: {
-      'page': page.toString(),
-      'limit': limit.toString(),
-    });
-    final response = await http.get(uri, headers: await _authHeaders());
+  /// GET current user's favorites (list of recipes) + lấy thêm authorName, authorAvatar
+  static Future<List<Recipe>> getFavorites(
+      {int page = 1, int limit = 20}) async {
+    try {
+      final uri = Uri.parse("$baseUrl/favorites").replace(queryParameters: {
+        'page': page.toString(),
+        'limit': limit.toString(),
+      });
+      final response = await http.get(uri, headers: await _authHeaders());
 
-    if (response.statusCode != 200) {
-      throw Exception("Failed to load favorites (status: ${response.statusCode})");
-    }
-
-    final body = json.decode(response.body) as Map<String, dynamic>? ?? {};
-    final List<dynamic> rows = body['data'] ?? [];
-    final recipes = <Recipe>[];
-
-    for (final row in rows) {
-      final r = (row is Map<String, dynamic>) ? row['recipe'] : null;
-      if (r == null) continue;
-
-      // Lấy thông tin tác giả nếu có
-      final dynamic author = r['author'] ?? r['user'] ?? r['createdBy'];
-      String authorName = '';
-      String authorAvatar = '';
-
-      if (author is Map<String, dynamic>) {
-        authorName = author['name'] ?? author['fullName'] ?? author['username'] ?? '';
-        authorAvatar = author['avatarUrl'] ?? author['avatar'] ?? author['photo'] ?? '';
+      if (response.statusCode != 200) {
+        throw Exception(
+            "Failed to load favorites (status: ${response.statusCode})");
       }
 
-      // Gộp vào map của recipe
-      final mapped = {
-        'id': r['id']?.toString() ?? '',
-        'title': r['title'] ?? '',
-        'description': r['description'] ?? '',
-        'prepTime': r['prepTime'] ?? 0,
-        'cookTime': r['cookTime'] ?? 0,
-        'servings': r['servings'] ?? 1,
-        'difficulty': r['difficulty'] ?? 'medium',
-        'category': r['category'] ?? 'other',
-        'imageUrl': r['imageUrl'] ?? '',
-        'isFavorite': true,
-        'isPublic': r['isPublic'] ?? true,
-        'tags': (r['tags'] is List) ? List<String>.from(r['tags']) : <String>[],
-        'nutrition': (r['nutrition'] is Map)
-            ? Map<String, dynamic>.from(r['nutrition'])
-            : <String, dynamic>{},
-        'createdAt': r['createdAt'] ?? DateTime.now().toIso8601String(),
-        'updatedAt': r['updatedAt'] ?? r['createdAt'] ?? DateTime.now().toIso8601String(),
-        'ingredients': (r['ingredients'] is List) ? r['ingredients'] : <dynamic>[],
-        'instructions': (r['instructions'] is List) ? r['instructions'] : <dynamic>[],
-        // ⭐️ Thêm 2 trường mới
-        'authorName': authorName,
-        'authorAvatar': authorAvatar,
-      };
+      final body = json.decode(response.body) as Map<String, dynamic>? ?? {};
+      final List<dynamic> rows = body['data'] ?? [];
+      final recipes = <Recipe>[];
 
-      recipes.add(Recipe.fromJson(mapped));
+      for (final row in rows) {
+        final r = (row is Map<String, dynamic>) ? row['recipe'] : null;
+        if (r == null) continue;
+
+        // Lấy thông tin tác giả nếu có
+        final dynamic author = r['author'] ?? r['user'] ?? r['createdBy'];
+        String authorName = '';
+        String authorAvatar = '';
+
+        if (author is Map<String, dynamic>) {
+          authorName =
+              author['name'] ?? author['fullName'] ?? author['username'] ?? '';
+          authorAvatar =
+              author['avatarUrl'] ?? author['avatar'] ?? author['photo'] ?? '';
+        }
+
+        // Gộp vào map của recipe
+        final mapped = {
+          'id': r['id']?.toString() ?? '',
+          'title': r['title'] ?? '',
+          'description': r['description'] ?? '',
+          'prepTime': r['prepTime'] ?? 0,
+          'cookTime': r['cookTime'] ?? 0,
+          'servings': r['servings'] ?? 1,
+          'difficulty': r['difficulty'] ?? 'medium',
+          'category': r['category'] ?? 'other',
+          'imageUrl': r['imageUrl'] ?? '',
+          'isFavorite': true,
+          'isPublic': r['isPublic'] ?? true,
+          'tags':
+              (r['tags'] is List) ? List<String>.from(r['tags']) : <String>[],
+          'nutrition': (r['nutrition'] is Map)
+              ? Map<String, dynamic>.from(r['nutrition'])
+              : <String, dynamic>{},
+          'createdAt': r['createdAt'] ?? DateTime.now().toIso8601String(),
+          'updatedAt': r['updatedAt'] ??
+              r['createdAt'] ??
+              DateTime.now().toIso8601String(),
+          'ingredients':
+              (r['ingredients'] is List) ? r['ingredients'] : <dynamic>[],
+          'instructions':
+              (r['instructions'] is List) ? r['instructions'] : <dynamic>[],
+          // ⭐️ Thêm 2 trường mới
+          'authorName': authorName,
+          'authorAvatar': authorAvatar,
+        };
+
+        recipes.add(Recipe.fromJson(mapped));
+      }
+
+      return recipes;
+    } catch (e) {
+      throw Exception("Error fetching favorites: $e");
     }
-
-    return recipes;
-  } catch (e) {
-    throw Exception("Error fetching favorites: $e");
   }
-}
-
 
   /// POST rate a recipe
-  static Future<Map<String, dynamic>> rateRecipe(String id, int rating,
-      {String? comment}) async {
+  static Future<Map<String, dynamic>> rateRecipe(
+    String id,
+    int rating, {
+    String? comment,
+    String? imageBase64,
+    String? imageUrl,
+    bool removeImage = false,
+  }) async {
     try {
-      final body = {
+      final Map<String, dynamic> body = {
         'rating': rating,
-        if (comment != null && comment.isNotEmpty) 'comment': comment,
       };
+      if (comment != null) {
+        final trimmed = comment.trim();
+        body['comment'] = trimmed;
+      }
+      if (imageBase64 != null && imageBase64.isNotEmpty) {
+        body['imageUpload'] = imageBase64;
+      }
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        body['imageUrl'] = imageUrl;
+      }
+      if (removeImage) {
+        body['removeImage'] = true;
+      }
+
       final response = await http.post(
         Uri.parse("$baseUrl/$id/rate"),
         headers: await _authHeaders(),
@@ -379,11 +426,14 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body)['data'] ?? {};
+        final ratingData = _normalizeRating(data['rating']);
         return {
           'avgRating': (data['avgRating'] is num)
-              ? (data['avgRating'] + 0.0)
+              ? (data['avgRating'] as num).toDouble()
               : double.tryParse('${data['avgRating']}') ?? 0.0,
           'totalRatings': data['totalRatings'] ?? 0,
+          'totalImages': data['totalImages'] ?? 0,
+          if (ratingData.isNotEmpty) 'rating': ratingData,
         };
       } else {
         throw Exception(
@@ -391,6 +441,107 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
       }
     } catch (e) {
       throw Exception('Error rating recipe: $e');
+    }
+  }
+
+  /// DELETE rating for a recipe
+  static Future<Map<String, dynamic>> deleteRating(String recipeId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse("$baseUrl/$recipeId/rate"),
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body)['data'] ?? {};
+        return {
+          'avgRating': (data['avgRating'] is num)
+              ? (data['avgRating'] as num).toDouble()
+              : double.tryParse('${data['avgRating']}') ?? 0.0,
+          'totalRatings': data['totalRatings'] ?? 0,
+          'totalImages': data['totalImages'] ?? 0,
+        };
+      } else {
+        throw Exception(
+            'Failed to delete rating (status: ${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Error deleting rating: $e');
+    }
+  }
+
+  /// GET paginated ratings for a recipe
+  static Future<Map<String, dynamic>> getRecipeRatings(
+    String id, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final params = {
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      final uri = Uri.parse("$baseUrl/$id/ratings").replace(
+        queryParameters: params,
+      );
+      final response = await http.get(
+        uri,
+        headers: await _authHeaders(),
+      );
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        final data = body['data'] as Map<String, dynamic>? ?? const {};
+        final ratings = (data['ratings'] as List<dynamic>? ?? const [])
+            .map(_normalizeRating)
+            .where((map) => map.isNotEmpty)
+            .toList();
+        final imagesPreview =
+            (data['imagesPreview'] as List<dynamic>? ?? const [])
+                .map((item) {
+                  if (item is Map<String, dynamic>) {
+                    final map = Map<String, dynamic>.from(item);
+                    final url = map['url']?.toString();
+                    if (url != null && url.isNotEmpty) {
+                      map['url'] = resolveImageUrl(url);
+                    }
+                    return map;
+                  }
+                  if (item is Map) {
+                    final map = Map<String, dynamic>.from(item);
+                    final url = map['url']?.toString();
+                    if (url != null && url.isNotEmpty) {
+                      map['url'] = resolveImageUrl(url);
+                    }
+                    return map;
+                  }
+                  if (item is String) {
+                    final url = resolveImageUrl(item);
+                    return url.isEmpty ? null : {'url': url};
+                  }
+                  return null;
+                })
+                .whereType<Map<String, dynamic>>()
+                .toList();
+
+        return {
+          'recipe': data['recipe'] ?? const {},
+          'page': data['page'] ?? page,
+          'limit': data['limit'] ?? limit,
+          'totalPages': data['totalPages'] ?? 0,
+          'hasMore': data['hasMore'] ?? false,
+          'avgRating': (data['avgRating'] is num)
+              ? (data['avgRating'] as num).toDouble()
+              : double.tryParse('${data['avgRating']}') ?? 0.0,
+          'totalRatings': data['totalRatings'] ?? ratings.length,
+          'totalImages': data['totalImages'] ?? imagesPreview.length,
+          'ratings': ratings,
+          'imagesPreview': imagesPreview,
+        };
+      } else {
+        throw Exception(
+            'Failed to fetch recipe ratings (status: ${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Error fetching recipe ratings: $e');
     }
   }
 
@@ -422,7 +573,10 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
           headers: await _authHeaders());
       if (response.statusCode == 200) {
         final body = json.decode(response.body);
-        return Recipe.fromJson(body['data']);
+        final data = Map<String, dynamic>.from(
+            body['data'] as Map<String, dynamic>? ?? const {});
+        _normalizeRatingsPayload(data);
+        return Recipe.fromJson(data);
       }
       throw Exception(
           'Failed to load my recipe detail (status: ${response.statusCode})');
@@ -535,7 +689,8 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
   // ============================================
 
   /// GET all collections of current user
-  static Future<List<Collection>> getMyCollections({int page = 1, int limit = 20}) async {
+  static Future<List<Collection>> getMyCollections(
+      {int page = 1, int limit = 20}) async {
     try {
       final uri = Uri.parse("$baseUrl/collections").replace(queryParameters: {
         'page': page.toString(),
@@ -547,7 +702,8 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
         final List<dynamic> data = body['data'] ?? [];
         return data.map((e) => Collection.fromJson(e)).toList();
       }
-      throw Exception('Failed to load collections (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to load collections (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error fetching collections: $e');
     }
@@ -564,7 +720,8 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
         final body = json.decode(response.body);
         return Collection.fromJson(body['data']);
       }
-      throw Exception('Failed to load collection (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to load collection (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error fetching collection: $e');
     }
@@ -591,7 +748,8 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
         final responseBody = json.decode(response.body);
         return Collection.fromJson(responseBody['data']);
       }
-      throw Exception('Failed to create collection (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to create collection (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error creating collection: $e');
     }
@@ -619,7 +777,8 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
         final responseBody = json.decode(response.body);
         return Collection.fromJson(responseBody['data']);
       }
-      throw Exception('Failed to update collection (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to update collection (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error updating collection: $e');
     }
@@ -635,14 +794,16 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
       if (response.statusCode == 200) {
         return true;
       }
-      throw Exception('Failed to delete collection (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to delete collection (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error deleting collection: $e');
     }
   }
 
   /// POST add recipe to collection
-  static Future<bool> addRecipeToCollection(String collectionId, String recipeId) async {
+  static Future<bool> addRecipeToCollection(
+      String collectionId, String recipeId) async {
     try {
       final body = {'recipeId': recipeId};
       final response = await http.post(
@@ -653,14 +814,16 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
       if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       }
-      throw Exception('Failed to add recipe to collection (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to add recipe to collection (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error adding recipe to collection: $e');
     }
   }
 
   /// DELETE remove recipe from collection
-  static Future<bool> removeRecipeFromCollection(String collectionId, String recipeId) async {
+  static Future<bool> removeRecipeFromCollection(
+      String collectionId, String recipeId) async {
     try {
       final response = await http.delete(
         Uri.parse("$baseUrl/collections/$collectionId/recipes/$recipeId"),
@@ -669,9 +832,61 @@ static Future<List<Recipe>> getFavorites({int page = 1, int limit = 20}) async {
       if (response.statusCode == 200) {
         return true;
       }
-      throw Exception('Failed to remove recipe from collection (status: ${response.statusCode})');
+      throw Exception(
+          'Failed to remove recipe from collection (status: ${response.statusCode})');
     } catch (e) {
       throw Exception('Error removing recipe from collection: $e');
+    }
+  }
+
+  static Map<String, dynamic> _normalizeRating(dynamic value) {
+    if (value is! Map) return <String, dynamic>{};
+    final map = Map<String, dynamic>.from(value);
+    final imageUrl = map['imageUrl']?.toString();
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      map['imageUrl'] = resolveImageUrl(imageUrl);
+    }
+    final reviewer = map['reviewer'];
+    if (reviewer is Map && reviewer.isNotEmpty) {
+      map['reviewer'] = Map<String, dynamic>.from(reviewer);
+    }
+    return map;
+  }
+
+  static void _normalizeRatingsPayload(Map<String, dynamic> data) {
+    final ratings = data['ratings'];
+    if (ratings is List) {
+      data['ratings'] =
+          ratings.map(_normalizeRating).where((map) => map.isNotEmpty).toList();
+    }
+    final preview = data['ratingImagesPreview'];
+    if (preview is List) {
+      data['ratingImagesPreview'] = preview
+          .map((item) {
+            if (item is Map<String, dynamic>) {
+              final map = Map<String, dynamic>.from(item);
+              final url = map['url']?.toString();
+              if (url != null && url.isNotEmpty) {
+                map['url'] = resolveImageUrl(url);
+              }
+              return map;
+            }
+            if (item is Map) {
+              final map = Map<String, dynamic>.from(item);
+              final url = map['url']?.toString();
+              if (url != null && url.isNotEmpty) {
+                map['url'] = resolveImageUrl(url);
+              }
+              return map;
+            }
+            if (item is String) {
+              final url = resolveImageUrl(item);
+              return url.isEmpty ? null : {'url': url};
+            }
+            return null;
+          })
+          .whereType<Map<String, dynamic>>()
+          .toList();
     }
   }
 }
