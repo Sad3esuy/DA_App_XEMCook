@@ -167,14 +167,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _showSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
@@ -186,68 +197,192 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadCount = _meta?.unreadCount ?? 0;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F5F7),
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        title: const Text('Thông báo'),
-        actions: [
-          if ((_meta?.unreadCount ?? 0) > 0)
-            IconButton(
-              tooltip: 'Đánh dấu tất cả đã đọc',
-              icon: const Icon(Icons.done_all_rounded),
-              onPressed: _markAllAsRead,
+        title: Row(
+          children: [
+            const Text(
+              'Thông báo',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 24,
+              ),
             ),
-          PopupMenuButton<String>(
-            initialValue: _statusFilter,
-            onSelected: _changeFilter,
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'all',
-                child: Text('Tất cả'),
-              ),
-              PopupMenuItem(
-                value: 'unread',
-                child: Text('Chưa đọc'),
-              ),
-              PopupMenuItem(
-                value: 'read',
-                child: Text('Đã đọc'),
+            if (unreadCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
-            icon: const Icon(Icons.filter_list_rounded),
-          ),
+          ],
+        ),
+        actions: [
+          if (unreadCount > 0)
+            IconButton(
+              tooltip: 'Đánh dấu tất cả đã đọc',
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.accentGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.done_all_rounded,
+                  color: AppTheme.accentGreen,
+                  size: 20,
+                ),
+              ),
+              onPressed: _markAllAsRead,
+            ),
         ],
       ),
       body: SafeArea(
-        child: _buildBody(),
+        child: Column(
+          children: [
+            _buildFilterChips(),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _buildFilterMenuItem(
+    String value,
+    String label,
+    IconData icon,
+  ) {
+    final isSelected = _statusFilter == value;
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isSelected ? AppTheme.primaryOrange : AppTheme.textLight,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? AppTheme.primaryOrange : AppTheme.textDark,
+            ),
+          ),
+          if (isSelected) ...[
+            const Spacer(),
+            const Icon(
+              Icons.check_rounded,
+              size: 18,
+              color: AppTheme.primaryOrange,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: Colors.white,
+      child: Row(
+        children: [
+          _FilterChip(
+            label: 'Tất cả',
+            isSelected: _statusFilter == 'all',
+            onTap: () => _changeFilter('all'),
+          ),
+          const SizedBox(width: 8),
+          _FilterChip(
+            label: 'Chưa đọc',
+            isSelected: _statusFilter == 'unread',
+            onTap: () => _changeFilter('unread'),
+          ),
+          const SizedBox(width: 8),
+          _FilterChip(
+            label: 'Đã đọc',
+            isSelected: _statusFilter == 'read',
+            onTap: () => _changeFilter('read'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading && _notifications.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryOrange),
+      );
     }
 
     if (_hasError && _notifications.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.all(32),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 20),
               Text(
                 _errorMessage ?? 'Không thể tải thông báo',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => _loadNotifications(reset: true),
-                child: const Text('Thử lại'),
-              )
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Thử lại',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -260,18 +395,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         color: AppTheme.primaryOrange,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 120),
-            Center(
+          padding: const EdgeInsets.all(32),
+          children: [
+            const SizedBox(height: 60),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.lightCream.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
               child: Icon(
                 Icons.notifications_off_outlined,
                 size: 64,
-                color: Colors.grey,
+                color: AppTheme.primaryOrange.withOpacity(0.4),
               ),
             ),
-            SizedBox(height: 16),
-            Center(child: Text('Chưa có thông báo nào')),
-            SizedBox(height: 120),
+            const SizedBox(height: 24),
+            Text(
+              'Chưa có thông báo nào',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textDark,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Các thông báo của bạn sẽ xuất hiện ở đây',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textLight,
+                  ),
+            ),
+            const SizedBox(height: 60),
           ],
         ),
       );
@@ -282,13 +438,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       color: AppTheme.primaryOrange,
       child: ListView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _notifications.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(
+                child: CircularProgressIndicator(color: AppTheme.primaryOrange),
+              ),
             );
           }
           final notification = _notifications[index];
@@ -298,6 +456,49 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             onDelete: () => _deleteNotification(notification),
           );
         },
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryOrange
+              : const Color.fromARGB(208, 221, 240, 232),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryOrange
+                : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.textDark,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
@@ -330,42 +531,55 @@ class _NotificationTile extends StatelessWidget {
     }
   }
 
-  IconData _resolveIcon() {
+  Map<String, dynamic> _resolveIconData() {
     switch (notification.type) {
       case 'recipe':
-        return Icons.restaurant_menu_rounded;
+        return {
+          'icon': Icons.restaurant_menu_rounded,
+          'color': AppTheme.primaryOrange,
+        };
       case 'social':
-        return Icons.group_rounded;
+        return {
+          'icon': Icons.group_rounded,
+          'color': const Color(0xFF2196F3),
+        };
       case 'reminder':
-        return Icons.alarm_rounded;
+        return {
+          'icon': Icons.alarm_rounded,
+          'color': const Color(0xFF9C27B0),
+        };
       default:
-        return Icons.notifications_rounded;
+        return {
+          'icon': Icons.notifications_rounded,
+          'color': AppTheme.accentGreen,
+        };
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = notification.isRead
-        ? Colors.white
-        : AppTheme.primaryOrange.withOpacity(0.08);
+    final iconData = _resolveIconData();
+    final iconColor = iconData['color'] as Color;
+    final icon = iconData['icon'] as IconData;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: baseColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
-        border: Border.all(
-          color: notification.isRead
-              ? Colors.transparent
-              : AppTheme.primaryOrange.withOpacity(0.4),
-        ),
+        border: notification.isRead
+            ? null
+            : Border.all(
+                color: AppTheme.primaryOrange.withOpacity(0.3),
+                width: 2,
+              ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -373,29 +587,33 @@ class _NotificationTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Icon container
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryOrange.withOpacity(0.12),
+                    color: iconColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _resolveIcon(),
-                    color: AppTheme.primaryOrange,
+                    icon,
+                    color: iconColor,
+                    size: 24,
                   ),
                 ),
                 const SizedBox(width: 12),
+                
+                // Content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Text(
@@ -404,52 +622,72 @@ class _NotificationTile extends StatelessWidget {
                                   .textTheme
                                   .titleMedium
                                   ?.copyWith(
-                                    fontWeight: notification.isRead
-                                        ? FontWeight.w600
-                                        : FontWeight.w700,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textDark,
+                                    height: 1.3,
                                   ),
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20),
-                            onPressed: onDelete,
-                            tooltip: 'Xóa thông báo',
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: onDelete,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: Colors.grey[400],
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         notification.message,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppTheme.textLight),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textLight,
+                              height: 1.4,
+                            ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 14,
+                            color: Colors.grey[500],
+                          ),
+                          const SizedBox(width: 4),
                           Text(
                             _formatTimeAgo(notification.createdAt),
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
-                                ?.copyWith(color: Colors.grey[600]),
+                                ?.copyWith(
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
                           ),
+                          const Spacer(),
                           if (!notification.isRead)
                             Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppTheme.primaryOrange,
-                                borderRadius: BorderRadius.circular(999),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               child: const Text(
                                 'Mới',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.3,
                                 ),
                               ),
                             ),

@@ -131,24 +131,12 @@ class _RecipeReviewFormScreenState extends State<RecipeReviewFormScreen> {
     final title = widget.recipeTitle?.trim();
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Đánh giá'),
-        leading: TextButton(
-          onPressed: _submitting ? null : () => Navigator.pop(context),
-          child: const Text('Hủy'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _submitting ? null : _submit,
-            child: _submitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Gửi'),
-          ),
-        ],
+        title: const Text('Đánh giá công thức'),
+        titleTextStyle: TextStyle(
+            fontSize: 24,
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Poppins'),
       ),
       body: SafeArea(
         child: ListView(
@@ -164,9 +152,11 @@ class _RecipeReviewFormScreenState extends State<RecipeReviewFormScreen> {
               const SizedBox(height: 12),
             ],
             Text(
-              'Bạn đã thử công thức này? Đánh giá nhé!',
+              'Bạn đã thử công thức này chưa?\nNếu rồi thì hãy đánh giá cho mình biết nhé <3',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 20,
+                    fontStyle: FontStyle.italic
                   ),
             ),
             const SizedBox(height: 16),
@@ -213,6 +203,7 @@ class _RecipeReviewFormScreenState extends State<RecipeReviewFormScreen> {
                           decoration: const InputDecoration(
                             hintText:
                                 'Chia sẻ cảm nhận hoặc mẹo nấu (tùy chọn)',
+                            hintStyle: TextStyle(color: Colors.black45),
                             border: InputBorder.none,
                           ),
                         ),

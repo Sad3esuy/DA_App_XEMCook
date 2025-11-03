@@ -6,6 +6,7 @@ import 'push_notification_service.dart';
 // Import models của bạn
 import '../model/user.dart';
 import '../model/auth.dart';
+import '../model/chef_profile.dart';
 
 /// Service xử lý tất cả API calls liên quan đến Authentication và User
 class AuthService {
@@ -553,6 +554,37 @@ class AuthService {
     } catch (e) {
       return _handleException(e);
     }
+  }
+
+  /// Lấy hồ sơ chef (public profile gồm công thức & bộ sưu tập công khai)
+  Future<ChefProfile?> getChefProfile(String userId) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_usersEndpoint/$userId'),
+            headers: _getHeaders(),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic> &&
+            decoded['success'] == true &&
+            decoded['data'] != null) {
+          final data = decoded['data'];
+          if (data is Map) {
+            return ChefProfile.fromJson(
+              Map<String, dynamic>.from(data),
+            );
+          }
+        }
+      } else {
+        print('Failed to fetch chef profile (status: ${response.statusCode})');
+      }
+    } catch (e) {
+      print('Get chef profile error: $e');
+    }
+    return null;
   }
 
   /// Lấy thống kê của user

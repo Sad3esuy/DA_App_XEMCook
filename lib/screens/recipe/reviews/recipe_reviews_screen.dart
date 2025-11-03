@@ -162,6 +162,11 @@ class _RecipeReviewsScreenState extends State<RecipeReviewsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Đánh giá'),
+        titleTextStyle: TextStyle(
+            fontSize: 24,
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Poppins'),
       ),
       body: RefreshIndicator(
         onRefresh: () => _fetchReviews(loadMore: false),
