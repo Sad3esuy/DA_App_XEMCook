@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../model/recipe.dart';
+import '../../services/favorite_state.dart';
 import '../../services/recipe_api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/recipe_card.dart';
@@ -25,7 +26,6 @@ extension RecipeCollectionSortX on RecipeCollectionSort {
       case RecipeCollectionSort.totalTime:
         return 'totalTime';
       case RecipeCollectionSort.defaultSort:
-      default:
         return 'default';
     }
   }
@@ -41,7 +41,6 @@ extension RecipeCollectionSortX on RecipeCollectionSort {
       case RecipeCollectionSort.totalTime:
         return 'Thời gian';
       case RecipeCollectionSort.defaultSort:
-      default:
         return 'Đề xuất';
     }
   }
@@ -57,7 +56,6 @@ extension RecipeCollectionSortX on RecipeCollectionSort {
       case RecipeCollectionSort.totalTime:
         return Icons.schedule_rounded;
       case RecipeCollectionSort.defaultSort:
-      default:
         return Icons.recommend_rounded;
     }
   }
@@ -168,6 +166,8 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   final Set<String> _favoriteIds = <String>{};
   final Set<String> _favoriteLoading = <String>{};
   final ScrollController _scrollController = ScrollController();
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
 
   late String? _selectedCategory;
   late String? _selectedDifficulty;
@@ -189,6 +189,17 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   @override
   void initState() {
     super.initState();
+    _favoriteState = FavoriteState.instance;
+    _favoriteIds.addAll(_favoriteState.ids);
+    _favoriteListener = () {
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds
+          ..clear()
+          ..addAll(_favoriteState.ids);
+      });
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _enableSearch = widget.config.enableSearch;
     final initialSearch = widget.config.initialSearch?.trim();
     _searchQuery = (initialSearch != null && initialSearch.isNotEmpty)
@@ -235,6 +246,9 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
     }
     _searchController?.dispose();
     _scrollController.dispose();
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
     super.dispose();
   }
 
@@ -261,6 +275,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
         limit: 40,
       );
       if (!mounted) return;
+      _favoriteState.absorbRecipes(recipes);
       setState(() {
         _recipes
           ..clear()
@@ -268,9 +283,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
         _favoriteIds
           ..clear()
           ..addAll(
-            recipes
-                .where((recipe) => recipe.isFavorite)
-                .map((recipe) => recipe.id),
+            _favoriteState.ids,
           );
         _favoriteLoading.removeWhere(
           (id) => !_recipes.any((recipe) => recipe.id == id),
@@ -957,12 +970,19 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   Future<void> _toggleFavorite(Recipe recipe) async {
     final recipeId = recipe.id;
     if (_favoriteLoading.contains(recipeId)) return;
+    final nextValue = !_favoriteState.isFavorite(recipeId);
     setState(() {
       _favoriteLoading.add(recipeId);
+      if (nextValue) {
+        _favoriteIds.add(recipeId);
+      } else {
+        _favoriteIds.remove(recipeId);
+      }
     });
+    _favoriteState.setFavorite(recipeId, nextValue);
 
     try {
-      final isFavorite = await RecipeApiService.toggleFavorite(recipeId);
+      final isFavorite = await _favoriteState.toggleFavorite(recipeId);
       if (!mounted) return;
       setState(() {
         _favoriteLoading.remove(recipeId);
@@ -972,11 +992,20 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
           _favoriteIds.remove(recipeId);
         }
       });
+      if (isFavorite != nextValue) {
+        _favoriteState.setFavorite(recipeId, isFavorite);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _favoriteLoading.remove(recipeId);
+        if (nextValue) {
+          _favoriteIds.remove(recipeId);
+        } else {
+          _favoriteIds.add(recipeId);
+        }
       });
+      _favoriteState.setFavorite(recipeId, !nextValue);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Khong the cap nhat yeu thich: $error')),
       );
@@ -1378,34 +1407,6 @@ class _BottomSheetChip extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(32),
-      children: [
-        Column(
-          children: [
-            const Icon(Icons.no_food, size: 42, color: AppTheme.textLight),
-            const SizedBox(height: 12),
-            Text(
-              'Chưa có công thức nào trong mục này.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppTheme.textLight),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

@@ -85,11 +85,17 @@ class RecipeGridCard extends StatelessWidget {
     required this.recipe,
     required this.onTap,
     this.overlay,
+    this.isFavorite,
+    this.onToggleFavorite,
+    this.isFavoriteBusy = false,
   });
 
   final Recipe recipe;
   final VoidCallback onTap;
   final Widget? overlay;
+  final bool? isFavorite;
+  final Future<void> Function()? onToggleFavorite;
+  final bool isFavoriteBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +159,14 @@ class RecipeGridCard extends StatelessWidget {
                   Positioned(
                     right: 10,
                     bottom: 10,
-                    child: _LikePill(count: likes),
+                    child: onToggleFavorite == null
+                        ? _LikePill(count: likes)
+                        : _FavoritePill(
+                            count: likes,
+                            isFavorite: isFavorite ?? recipe.isFavorite,
+                            isBusy: isFavoriteBusy,
+                            onPressed: onToggleFavorite,
+                          ),
                   ),
                 ],
               ),
@@ -243,6 +256,86 @@ class _LikePill extends StatelessWidget {
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FavoritePill extends StatelessWidget {
+  const _FavoritePill({
+    required this.count,
+    required this.isFavorite,
+    required this.isBusy,
+    required this.onPressed,
+  });
+
+  final int count;
+  final bool isFavorite;
+  final bool isBusy;
+  final Future<void> Function()? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconData = isFavorite ? Icons.favorite : Icons.favorite_border;
+    final iconColor = isFavorite ? Colors.red : AppTheme.primaryOrange;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: (isBusy || onPressed == null)
+            ? null
+            : () async {
+                try {
+                  await onPressed!.call();
+                } catch (_) {
+                  // Errors surface via parent Snackbar.
+                }
+              },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: isBusy
+                ? const SizedBox(
+                    key: ValueKey('favorite-loading'),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+                    ),
+                  )
+                : Row(
+                    key: ValueKey<bool>(isFavorite),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(iconData, size: 16, color: iconColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        count.toString(),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textDark,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../model/chef_profile.dart';
-import '../../model/collection.dart';
+import '../../model/recipe.dart';
 import '../../services/auth_service.dart';
+import '../../services/favorite_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/my_recipe_cards.dart';
 import '../recipe/recipe_detail_screen.dart';
-import 'widget/statItem.dart';
 
 class ChefProfileScreen extends StatefulWidget {
   const ChefProfileScreen({
@@ -30,11 +30,28 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
   ChefProfile? _profile;
   bool _loading = true;
   String? _error;
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
+  final Set<String> _favoriteBusy = <String>{};
 
   @override
   void initState() {
     super.initState();
+    _favoriteState = FavoriteState.instance;
+    _favoriteListener = () {
+      if (!mounted) return;
+      setState(() {});
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -57,6 +74,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
         _profile = data;
         _loading = false;
       });
+      _favoriteState.absorbRecipes(data.recipes);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -68,6 +86,35 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
 
   Future<void> _refresh() async {
     await _loadProfile();
+  }
+
+  Future<void> _handleFavoriteToggle(Recipe recipe) async {
+    final recipeId = recipe.id;
+    if (_favoriteBusy.contains(recipeId)) return;
+    final nextValue = !_favoriteState.isFavorite(recipeId);
+    setState(() {
+      _favoriteBusy.add(recipeId);
+    });
+    _favoriteState.setFavorite(recipeId, nextValue);
+    try {
+      final isFavorite = await _favoriteState.toggleFavorite(recipeId);
+      if (!mounted) return;
+      setState(() {
+        _favoriteBusy.remove(recipeId);
+      });
+      if (isFavorite != nextValue) {
+        _favoriteState.setFavorite(recipeId, isFavorite);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _favoriteBusy.remove(recipeId);
+      });
+      _favoriteState.setFavorite(recipeId, !nextValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể cập nhật yêu thích: $e')),
+      );
+    }
   }
 
   @override
@@ -83,7 +130,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
           title,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontSize: 24,
           ),
         ),
       ),
@@ -204,6 +251,10 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
                               RecipeDetailScreen(recipeId: recipe.id),
                         ),
                       ),
+                      isFavorite: _favoriteState.isFavorite(recipe.id) ||
+                          recipe.isFavorite,
+                      onToggleFavorite: () => _handleFavoriteToggle(recipe),
+                      isFavoriteBusy: _favoriteBusy.contains(recipe.id),
                     );
                   },
                   childCount: profile.recipes.length,
@@ -240,7 +291,6 @@ class _ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = profile.user;
     final bio = user.bio?.trim() ?? '';
-    final stats = profile.stats;
     final avatarUrl = _resolveAvatarUrl(user.avatar ?? fallbackAvatar);
     final initials = _initialsFor(user.fullName);
 
