@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:test_ui_app/model/user.dart';
 // import 'package:test_ui_app/services/auth_service.dart';
+import 'package:test_ui_app/services/favorite_state.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/model/recipe.dart';
@@ -21,11 +22,30 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   bool _loading = true;
   String? _error;
   final Set<String> _favoriteLoading = <String>{};
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
 
   @override
   void initState() {
     super.initState();
+    _favoriteState = FavoriteState.instance;
+    _favoriteListener = () {
+      if (!mounted) return;
+      final favoriteIds = _favoriteState.ids;
+      setState(() {
+        _recipes = _recipes.where((recipe) => favoriteIds.contains(recipe.id)).toList();
+      });
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _loadFavorites();
+  }
+
+  @override
+  void dispose() {
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _loadFavorites({bool showSpinner = true}) async {
@@ -43,6 +63,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     try {
       final data = await RecipeApiService.getFavorites();
       if (!mounted) return;
+      _favoriteState.absorbRecipes(data);
       setState(() {
         _recipes = data;
         _loading = false;
@@ -86,7 +107,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     });
 
     try {
-      final stillFavorite = await RecipeApiService.toggleFavorite(recipeId);
+      final stillFavorite = await _favoriteState.toggleFavorite(recipeId);
       if (!mounted) return;
       setState(() {
         _favoriteLoading.remove(recipeId);

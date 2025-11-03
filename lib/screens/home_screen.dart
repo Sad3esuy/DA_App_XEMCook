@@ -3,6 +3,7 @@ import '../model/recipe.dart';
 import '../model/home_feed.dart';
 import '../model/user.dart';
 import '../services/auth_service.dart';
+import '../services/favorite_state.dart';
 import '../services/recipe_api_service.dart';
 import '../services/notification_api_service.dart';
 import '../theme/app_theme.dart';
@@ -27,18 +28,44 @@ class _HomeScreenState extends State<HomeScreen> {
   late final PageController _recipeOfTheDayController;
   int _recipeOfTheDayIndex = 0;
   int _unreadNotificationCount = 0;
+  late final FavoriteState _favoriteState;
+  late Set<String> _favoriteIds;
+  VoidCallback? _favoriteListener;
+  final Set<String> _favoriteBusy = <String>{};
 
   @override
   void initState() {
     super.initState();
     _recipeOfTheDayController = PageController(viewportFraction: 0.88);
+    _favoriteState = FavoriteState.instance;
+    _favoriteIds = <String>{..._favoriteState.ids};
+    _favoriteListener = () {
+      final ids = _favoriteState.ids;
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds
+          ..clear()
+          ..addAll(ids);
+      });
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _loadUserData();
     _homeFeedFuture = _fetchHomeFeed();
     _loadNotificationSummary();
   }
 
   Future<HomeFeed> _fetchHomeFeed() {
-    return RecipeApiService.getHomeFeed();
+    return RecipeApiService.getHomeFeed().then((feed) {
+      _favoriteState.absorbRecipes(feed.collectUniqueRecipes());
+      if (mounted) {
+        setState(() {
+          _favoriteIds
+            ..clear()
+            ..addAll(_favoriteState.ids);
+        });
+      }
+      return feed;
+    });
   }
 
   Future<void> _loadUserData() async {
@@ -78,7 +105,54 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _recipeOfTheDayController.dispose();
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
     super.dispose();
+  }
+
+  Future<void> _handleFavoriteToggle(Recipe recipe) async {
+    final recipeId = recipe.id;
+    if (_favoriteBusy.contains(recipeId)) return;
+    final nextValue = !_favoriteState.isFavorite(recipeId);
+    setState(() {
+      _favoriteBusy.add(recipeId);
+      if (nextValue) {
+        _favoriteIds.add(recipeId);
+      } else {
+        _favoriteIds.remove(recipeId);
+      }
+    });
+    _favoriteState.setFavorite(recipeId, nextValue);
+    try {
+      final isFavorite = await _favoriteState.toggleFavorite(recipeId);
+      if (!mounted) return;
+      setState(() {
+        _favoriteBusy.remove(recipeId);
+        if (isFavorite) {
+          _favoriteIds.add(recipeId);
+        } else {
+          _favoriteIds.remove(recipeId);
+        }
+      });
+      if (isFavorite != nextValue) {
+        _favoriteState.setFavorite(recipeId, isFavorite);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _favoriteBusy.remove(recipeId);
+        if (nextValue) {
+          _favoriteIds.remove(recipeId);
+        } else {
+          _favoriteIds.add(recipeId);
+        }
+      });
+      _favoriteState.setFavorite(recipeId, !nextValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể cập nhật yêu thích: $e')),
+      );
+    }
   }
 
   void _openRecipeDetail(Recipe recipe) {
@@ -169,6 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: topRated,
                       onRecipeTap: _openRecipeDetail,
+                      favoriteIds: _favoriteIds,
+                      onToggleFavorite: _handleFavoriteToggle,
+                      favoriteBusy: _favoriteBusy,
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -187,6 +264,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: mostViewed,
                       onRecipeTap: _openRecipeDetail,
+                      favoriteIds: _favoriteIds,
+                      onToggleFavorite: _handleFavoriteToggle,
+                      favoriteBusy: _favoriteBusy,
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -207,6 +287,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: quickMeals,
                       onRecipeTap: _openRecipeDetail,
+                      favoriteIds: _favoriteIds,
+                      onToggleFavorite: _handleFavoriteToggle,
+                      favoriteBusy: _favoriteBusy,
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -239,6 +322,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: seasonalRecipes,
                       onRecipeTap: _openRecipeDetail,
+                      favoriteIds: _favoriteIds,
+                      onToggleFavorite: _handleFavoriteToggle,
+                      favoriteBusy: _favoriteBusy,
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -419,6 +505,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   recipe: recipe,
                   label: 'Recipe of the Day',
                   onTap: () => _openRecipeDetail(recipe),
+                  isFavorite: _favoriteIds.contains(recipe.id),
+                  onToggleFavorite: () => _handleFavoriteToggle(recipe),
+                  isFavoriteBusy: _favoriteBusy.contains(recipe.id),
                 ),
               );
             },
@@ -485,11 +574,17 @@ class _FeaturedRecipeBanner extends StatelessWidget {
     required this.recipe,
     required this.onTap,
     this.label = "Công thức hôm nay",
+    required this.isFavorite,
+    required this.onToggleFavorite,
+    required this.isFavoriteBusy,
   });
 
   final Recipe recipe;
   final VoidCallback onTap;
   final String label;
+  final bool isFavorite;
+  final Future<void> Function() onToggleFavorite;
+  final bool isFavoriteBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -595,7 +690,12 @@ class _FeaturedRecipeBanner extends StatelessWidget {
                                 ),
                           ),
                         ),
-                        _LikePill(count: likes),
+                        _HomeFavoritePill(
+                          count: likes,
+                          isFavorite: isFavorite,
+                          isBusy: isFavoriteBusy,
+                          onPressed: onToggleFavorite,
+                        ),
                       ],
                     ),
                   ],
@@ -610,10 +710,19 @@ class _FeaturedRecipeBanner extends StatelessWidget {
 }
 
 class _LatestRecipesStrip extends StatelessWidget {
-  const _LatestRecipesStrip({required this.recipes, required this.onRecipeTap});
+  const _LatestRecipesStrip({
+    required this.recipes,
+    required this.onRecipeTap,
+    required this.favoriteIds,
+    required this.onToggleFavorite,
+    required this.favoriteBusy,
+  });
 
   final List<Recipe> recipes;
   final ValueChanged<Recipe> onRecipeTap;
+  final Set<String> favoriteIds;
+  final Future<void> Function(Recipe) onToggleFavorite;
+  final Set<String> favoriteBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -634,6 +743,9 @@ class _LatestRecipesStrip extends StatelessWidget {
           return _LatestRecipeCard(
             recipe: recipe,
             onTap: () => onRecipeTap(recipe),
+            isFavorite: favoriteIds.contains(recipe.id),
+            onToggleFavorite: () => onToggleFavorite(recipe),
+            isFavoriteBusy: favoriteBusy.contains(recipe.id),
           );
         },
         separatorBuilder: (_, __) => const SizedBox(width: 18),
@@ -644,10 +756,19 @@ class _LatestRecipesStrip extends StatelessWidget {
 }
 
 class _LatestRecipeCard extends StatelessWidget {
-  const _LatestRecipeCard({required this.recipe, required this.onTap});
+  const _LatestRecipeCard({
+    required this.recipe,
+    required this.onTap,
+    required this.isFavorite,
+    required this.onToggleFavorite,
+    required this.isFavoriteBusy,
+  });
 
   final Recipe recipe;
   final VoidCallback onTap;
+  final bool isFavorite;
+  final Future<void> Function() onToggleFavorite;
+  final bool isFavoriteBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -756,7 +877,12 @@ class _LatestRecipeCard extends StatelessWidget {
                   Positioned(
                     right: 10,
                     bottom: 10,
-                    child: _LikePill(count: likes),
+                    child: _HomeFavoritePill(
+                      count: likes,
+                      isFavorite: isFavorite,
+                      isBusy: isFavoriteBusy,
+                      onPressed: onToggleFavorite,
+                    ),
                   ),
                 ],
               ),
@@ -823,6 +949,86 @@ class _LatestRecipeCard extends StatelessWidget {
     if (trimmed.isEmpty) return '';
     final normalized = trimmed.replaceAll(RegExp(r'\s+'), '_');
     return '#$normalized';
+  }
+}
+
+class _HomeFavoritePill extends StatelessWidget {
+  const _HomeFavoritePill({
+    required this.count,
+    required this.isFavorite,
+    required this.isBusy,
+    required this.onPressed,
+  });
+
+  final int count;
+  final bool isFavorite;
+  final bool isBusy;
+  final Future<void> Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconData = isFavorite ? Icons.favorite : Icons.favorite_border;
+    final iconColor = isFavorite ? Colors.red : AppTheme.primaryOrange;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: isBusy
+            ? null
+            : () async {
+                try {
+                  await onPressed();
+                } catch (_) {
+                  // Feedback handled upstream.
+                }
+              },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: isBusy
+                ? const SizedBox(
+                    key: ValueKey('home-favorite-loading'),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppTheme.primaryOrange),
+                    ),
+                  )
+                : Row(
+                    key: ValueKey<bool>(isFavorite),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(iconData, size: 16, color: iconColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        count.toString(),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textDark,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_ui_app/model/collection.dart';
+import 'package:test_ui_app/services/favorite_state.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/model/recipe.dart';
@@ -25,6 +26,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   Collection? _collection;
   List<Recipe> _recipes = const <Recipe>[];
   List<Recipe> _filteredRecipes = const <Recipe>[];
+  final Set<String> _favoriteIds = <String>{};
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
   bool _loading = true;
   String? _error;
   final Set<String> _favoriteLoading = <String>{};
@@ -34,6 +38,17 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _favoriteState = FavoriteState.instance;
+    _favoriteIds.addAll(_favoriteState.ids);
+    _favoriteListener = () {
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds
+          ..clear()
+          ..addAll(_favoriteState.ids);
+      });
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _loadCollection();
     _searchController.addListener(_onSearchChanged);
   }
@@ -42,6 +57,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
     super.dispose();
   }
 
@@ -77,14 +95,24 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           await RecipeApiService.getCollectionById(widget.collectionId);
       if (!mounted) return;
 
+      final recipes = collection.recipes ?? <Recipe>[];
+      _favoriteState.absorbRecipes(recipes);
+
       setState(() {
         _collection = collection;
         // Get recipes from collection if available
-        _recipes = collection.recipes ?? [];
-        _filteredRecipes = _recipes;
+        _recipes = recipes;
+        _filteredRecipes = recipes;
+        _favoriteIds
+          ..clear()
+          ..addAll(_favoriteState.ids);
         _loading = false;
         _favoriteLoading.clear();
       });
+
+      if (_searchController.text.isNotEmpty) {
+        _onSearchChanged();
+      }
     } catch (e) {
       if (!mounted) return;
       if (_recipes.isEmpty || showSpinner) {
@@ -117,23 +145,42 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   Future<void> _toggleFavorite(Recipe recipe) async {
     final recipeId = recipe.id;
     if (_favoriteLoading.contains(recipeId)) return;
+    final nextValue = !_favoriteState.isFavorite(recipeId);
     setState(() {
       _favoriteLoading.add(recipeId);
+      if (nextValue) {
+        _favoriteIds.add(recipeId);
+      } else {
+        _favoriteIds.remove(recipeId);
+      }
     });
+    _favoriteState.setFavorite(recipeId, nextValue);
 
     try {
-      await RecipeApiService.toggleFavorite(recipeId);
+      final isFavorite = await _favoriteState.toggleFavorite(recipeId);
       if (!mounted) return;
       setState(() {
         _favoriteLoading.remove(recipeId);
+        if (isFavorite) {
+          _favoriteIds.add(recipeId);
+        } else {
+          _favoriteIds.remove(recipeId);
+        }
       });
-      // Reload collection to get updated data
-      await _loadCollection(showSpinner: false);
+      if (isFavorite != nextValue) {
+        _favoriteState.setFavorite(recipeId, isFavorite);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _favoriteLoading.remove(recipeId);
+        if (nextValue) {
+          _favoriteIds.remove(recipeId);
+        } else {
+          _favoriteIds.add(recipeId);
+        }
       });
+      _favoriteState.setFavorite(recipeId, !nextValue);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Không thể cập nhật yêu thích: $e')),
       );
@@ -423,7 +470,7 @@ builder: (context) => AlertDialog(
               key: ValueKey(recipe.id),
               recipe: recipe,
               onTap: () => _openRecipeDetail(recipe),
-              isFavorite: recipe.isFavorite,
+              isFavorite: _favoriteIds.contains(recipe.id),
               isFavoriteBusy: _favoriteLoading.contains(recipe.id),
               onToggleFavorite: () => _toggleFavorite(recipe),
             ),

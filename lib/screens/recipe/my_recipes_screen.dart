@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/model/collection.dart';
+import 'package:test_ui_app/services/favorite_state.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/widgets/my_recipe_cards.dart';
@@ -24,11 +25,28 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   bool _isLoadingRecipes = true;
   bool _isLoadingCollections = false;
   String? _error;
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
+  final Set<String> _favoriteBusy = <String>{};
 
   @override
   void initState() {
     super.initState();
+    _favoriteState = FavoriteState.instance;
+    _favoriteListener = () {
+      if (!mounted) return;
+      setState(() {});
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _loadData({bool showSpinner = true}) async {
@@ -55,6 +73,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         _isLoadingCollections = false;
         _error = null;
       });
+      _favoriteState.absorbRecipes(_recipes);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -117,6 +136,35 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     }
   }
 
+  Future<void> _handleFavoriteToggle(Recipe recipe) async {
+    final recipeId = recipe.id;
+    if (_favoriteBusy.contains(recipeId)) return;
+    final nextValue = !_favoriteState.isFavorite(recipeId);
+    setState(() {
+      _favoriteBusy.add(recipeId);
+    });
+    _favoriteState.setFavorite(recipeId, nextValue);
+    try {
+      final isFavorite = await _favoriteState.toggleFavorite(recipeId);
+      if (!mounted) return;
+      setState(() {
+        _favoriteBusy.remove(recipeId);
+      });
+      if (isFavorite != nextValue) {
+        _favoriteState.setFavorite(recipeId, isFavorite);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _favoriteBusy.remove(recipeId);
+      });
+      _favoriteState.setFavorite(recipeId, !nextValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể cập nhật yêu thích: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget bodyContent;
@@ -131,6 +179,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
     } else if (_recipes.isEmpty) {
       bodyContent = const _EmptyView();
     } else {
+      final favoriteIds = _favoriteState.ids;
       bodyContent = _RecipesContent(
         recipes: _recipes,
         collections: _collections,
@@ -138,6 +187,9 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         onCreateCollection: _openCreateCollection,
         onOpenRecipe: (recipe) => _openRecipeDetail(recipe.id),
         onCollectionDeleted: _loadCollections,
+        favoriteIds: favoriteIds,
+        favoriteBusy: _favoriteBusy,
+        onToggleFavorite: _handleFavoriteToggle,
       );
     }
 
@@ -195,6 +247,9 @@ class _RecipesContent extends StatelessWidget {
     required this.onCreateCollection,
     required this.onOpenRecipe,
     required this.onCollectionDeleted,
+    required this.favoriteIds,
+    required this.favoriteBusy,
+    required this.onToggleFavorite,
   });
 
   final List<Recipe> recipes;
@@ -203,10 +258,15 @@ class _RecipesContent extends StatelessWidget {
   final VoidCallback onCreateCollection;
   final ValueChanged<Recipe> onOpenRecipe;
   final Future<void> Function() onCollectionDeleted;
+  final Set<String> favoriteIds;
+  final Set<String> favoriteBusy;
+  final Future<void> Function(Recipe) onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
-    final favoritesCount = recipes.where((r) => r.isFavorite).length;
+    final favoritesCount = recipes
+        .where((r) => favoriteIds.contains(r.id) || r.isFavorite)
+        .length;
 
     return CustomScrollView(
       physics:
@@ -243,6 +303,23 @@ class _RecipesContent extends StatelessWidget {
                     ),
                   ],
                 ),
+
+                if (isLoadingCollections) ...[
+                  const SizedBox(height: 12),
+                  const Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      height: 28,
+                      width: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.primaryOrange,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 
                 // Show all user collections in a grid
                 if (collections.isNotEmpty) ...[
@@ -276,6 +353,10 @@ class _RecipesContent extends StatelessWidget {
                 return RecipeGridCard(
                   recipe: recipe,
                   onTap: () => onOpenRecipe(recipe),
+                  isFavorite: favoriteIds.contains(recipe.id) ||
+                      recipe.isFavorite,
+                  onToggleFavorite: () => onToggleFavorite(recipe),
+                  isFavoriteBusy: favoriteBusy.contains(recipe.id),
                 );
               },
               childCount: recipes.length,

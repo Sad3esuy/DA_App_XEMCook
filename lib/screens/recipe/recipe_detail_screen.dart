@@ -5,6 +5,7 @@ import 'package:test_ui_app/model/instruction.dart';
 import 'package:test_ui_app/model/ingredient.dart';
 import 'package:test_ui_app/model/recipe.dart';
 import 'package:test_ui_app/services/auth_service.dart';
+import 'package:test_ui_app/services/favorite_state.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/screens/recipe/collection/add_recipe_to_collection_sheet.dart';
@@ -14,7 +15,6 @@ import 'package:test_ui_app/screens/recipe/reviews/recipe_review_form_screen.dar
 import 'package:test_ui_app/screens/recipe/reviews/recipe_reviews_screen.dart';
 import 'package:test_ui_app/screens/recipe/reviews/widgets/rating_comment_tile.dart';
 import 'package:test_ui_app/screens/profile/chef_profile_screen.dart';
-import 'package:share_plus/share_plus.dart';
 
 String _difficultyLabel(String value) {
   final normalized = value.trim().toLowerCase();
@@ -55,30 +55,6 @@ Color _difficultyColor(String value) {
   }
 }
 
-String _categoryLabel(String value) {
-  final normalized = value.trim().toLowerCase();
-  switch (normalized) {
-    case 'dinner':
-      return 'Món chính';
-    case 'lunch':
-      return 'Ăn trưa';
-    case 'breakfast':
-      return 'Ăn sáng';
-    case 'dessert':
-      return 'Tráng miệng';
-    case 'beverage':
-      return 'Đồ uống';
-    case 'snack':
-      return 'Ăn vặt';
-    case 'vegan':
-      return 'Thuần chay';
-    case 'other':
-      return 'Khác';
-    default:
-      return value;
-  }
-}
-
 class RecipeDetailScreen extends StatefulWidget {
   final String recipeId;
   const RecipeDetailScreen({super.key, required this.recipeId});
@@ -96,12 +72,32 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   String? _currentUserId;
   bool _addingToShoppingList = false;
   int? _servingsOverride;
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
 
   @override
   void initState() {
     super.initState();
+    _favoriteState = FavoriteState.instance;
+    _favorite = _favoriteState.isFavorite(widget.recipeId);
+    _favoriteListener = () {
+      if (!mounted) return;
+      final synced = _favoriteState.isFavorite(widget.recipeId);
+      if (synced != _favorite) {
+        setState(() => _favorite = synced);
+      }
+    };
+    _favoriteState.addListener(_favoriteListener!);
     _future = RecipeApiService.getRecipeById(widget.recipeId);
     _loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _reload() async {
@@ -117,17 +113,6 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     final user = await AuthService().getUser();
     if (!mounted) return;
     setState(() => _currentUserId = user?.id);
-  }
-
-  Future<void> _shareRecipe(Recipe recipe) async {
-    final buffer = StringBuffer('Khám phá công thức ${recipe.title}');
-    final description = recipe.description.trim();
-    if (description.isNotEmpty) {
-      buffer
-        ..write('\n\n')
-        ..write(description);
-    }
-    await Share.share(buffer.toString());
   }
 
   Future<void> _openAddToCollectionSheet(Recipe recipe) async {
@@ -513,14 +498,19 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             }
 
             final recipe = snapshot.data!;
-            _favorite = recipe.isFavorite;
+            final apiFavorite = recipe.isFavorite;
+            final syncedFavorite = _favoriteState.isFavorite(recipe.id);
+            final resolvedFavorite = syncedFavorite || apiFavorite;
+            if (_favorite != resolvedFavorite) {
+              _favorite = resolvedFavorite;
+            }
+            _favoriteState.setFavorite(recipe.id, resolvedFavorite);
             _avg = recipe.avgRating;
             _total = recipe.totalRatings;
 
             final totalTime = recipe.prepTime + recipe.cookTime;
             final difficultyColor = _difficultyColor(recipe.difficulty);
             final difficultyLabel = _difficultyLabel(recipe.difficulty);
-            final categoryLabel = _categoryLabel(recipe.category);
             final canManage = _currentUserId != null &&
                 (recipe.userId ?? '').isNotEmpty &&
                 recipe.userId == _currentUserId;
@@ -563,21 +553,35 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       onPressed: _busy
                           ? null
                           : () async {
-                              setState(() => _busy = true);
+                              final nextValue = !_favorite;
+                              setState(() {
+                                _busy = true;
+                                _favorite = nextValue;
+                              });
+                              _favoriteState.setFavorite(recipe.id, nextValue);
                               try {
-                                final isFav =
-                                    await RecipeApiService.toggleFavorite(
-                                        recipe.id);
+                                final isFav = await _favoriteState
+                                    .toggleFavorite(recipe.id);
                                 if (!mounted) return;
-                                setState(() => _favorite = isFav);
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Lỗi: $e')),
-                                  );
+                                setState(() {
+                                  _favorite = isFav;
+                                  _busy = false;
+                                });
+                                if (isFav != nextValue) {
+                                  _favoriteState.setFavorite(
+                                      recipe.id, isFav);
                                 }
-                              } finally {
-                                if (mounted) setState(() => _busy = false);
+                              } catch (e) {
+                                if (!mounted) return;
+                                setState(() {
+                                  _favorite = !nextValue;
+                                  _busy = false;
+                                });
+                                _favoriteState.setFavorite(
+                                    recipe.id, !nextValue);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Lỗi: $e')),
+                                );
                               }
                             },
                     ),

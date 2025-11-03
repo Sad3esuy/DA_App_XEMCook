@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_ui_app/model/recipe.dart';
+import 'package:test_ui_app/services/favorite_state.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
 import 'package:test_ui_app/theme/app_theme.dart';
 import 'package:test_ui_app/screens/recipe/recipe_detail_screen.dart';
@@ -16,6 +17,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
   String _query = '';
   String? _category; // null = tất cả
   bool _showMine = false;
+  final FavoriteState _favoriteState = FavoriteState.instance;
 
   static const List<String> _categories = <String>[
     'Món chính',
@@ -32,16 +34,20 @@ class _RecipesScreenState extends State<RecipesScreen> {
     if (_showMine) {
       final list = await RecipeApiService.getMyRecipes();
       // Lọc client-side theo query/category cho danh sách của tôi
-      return list.where((r) {
+      final filtered = list.where((r) {
         final okQuery = q.isEmpty || r.title.toLowerCase().contains(q.toLowerCase()) || r.description.toLowerCase().contains(q.toLowerCase());
         final okCat = mappedCat == null || r.category == mappedCat;
         return okQuery && okCat;
       }).toList();
+      _favoriteState.absorbRecipes(filtered);
+      return filtered;
     } else {
-      return RecipeApiService.getAllRecipes(
+      final recipes = await RecipeApiService.getAllRecipes(
         search: q.isNotEmpty ? q : null,
         category: mappedCat,
       );
+      _favoriteState.absorbRecipes(recipes);
+      return recipes;
     }
   }
 
@@ -73,7 +79,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
     setState(() {
       _future = _fetch();
     });
-    await _future.catchError((_) {});
+    await _future.catchError((_) => <Recipe>[]);
   }
 
   void _applyFilters() {
@@ -396,34 +402,60 @@ class _RecipeItem extends StatefulWidget {
 class _RecipeItemState extends State<_RecipeItem> {
   late bool _favorite;
   bool _busy = false;
+  late final FavoriteState _favoriteState;
+  VoidCallback? _favoriteListener;
 
   @override
   void initState() {
     super.initState();
-    _favorite = widget.recipe.isFavorite;
+    _favoriteState = FavoriteState.instance;
+    _favorite = widget.recipe.isFavorite ||
+        _favoriteState.isFavorite(widget.recipe.id);
+    _favoriteListener = () {
+      if (!mounted) return;
+      final synced = _favoriteState.isFavorite(widget.recipe.id);
+      if (synced != _favorite) {
+        setState(() => _favorite = synced);
+      }
+    };
+    _favoriteState.addListener(_favoriteListener!);
+  }
+
+  @override
+  void dispose() {
+    if (_favoriteListener != null) {
+      _favoriteState.removeListener(_favoriteListener!);
+    }
+    super.dispose();
   }
 
   Future<void> _toggleFavorite() async {
     if (_busy) return;
+    final nextValue = !_favorite;
     setState(() {
       _busy = true;
-      _favorite = !_favorite;
+      _favorite = nextValue;
     });
+    _favoriteState.setFavorite(widget.recipe.id, nextValue);
     try {
-      final updated = await RecipeApiService.toggleFavorite(widget.recipe.id);
+      final updated = await _favoriteState.toggleFavorite(widget.recipe.id);
       if (mounted) {
         setState(() {
           // toggleFavorite returns a bool (true if now favorite)
           _favorite = updated;
           _busy = false;
         });
+        if (updated != nextValue) {
+          _favoriteState.setFavorite(widget.recipe.id, updated);
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _favorite = !_favorite; // revert
+          _favorite = !nextValue; // revert
           _busy = false;
         });
+        _favoriteState.setFavorite(widget.recipe.id, !nextValue);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Không thể cập nhật yêu thích: $e')),
         );
