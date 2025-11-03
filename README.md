@@ -1,22 +1,61 @@
-# 🍳 Recipe App - Ứng dụng Công thức Nấu ăn Cá nhân
+# 🍳 XEMCook - Ứng dụng Chia sẻ Công thức Nấu ăn
 
-![Flutter Version](https://img.shields.io/badge/Flutter-3.24.0-02569B?logo=flutter)
-![Dart Version](https://img.shields.io/badge/Dart-3.5.0-0175C2?logo=dart)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Flutter Version](https://img.shields.io/badge/Flutter-3.24.0+-02569B?logo=flutter)
+![Dart Version](https://img.shields.io/badge/Dart-3.5.0+-0175C2?logo=dart)
+![Node.js Version](https://img.shields.io/badge/Node.js-18.0+-339933?logo=node.js)
 
-Ứng dụng di động đa nền tảng giúp bạn lưu trữ, quản lý và chia sẻ công thức nấu ăn cá nhân. Xây dựng bằng Flutter với giao diện thân thiện và nhiều tính năng hữu ích.
+**XEMCook** là nền tảng mạng xã hội chia sẻ công thức nấu ăn, nơi mọi người có thể khám phá, lưu trữ, và chia sẻ những món ăn yêu thích. Ứng dụng kết hợp giữa tính năng mạng xã hội và quản lý công thức cá nhân, mang đến trải nghiệm nấu ăn thú vị và kết nối cộng đồng đam mê ẩm thực.
 
 ## ✨ Tính năng chính
 
-- 📝 **Quản lý công thức**: Thêm, sửa, xóa công thức với hình ảnh
-- 🔍 **Tìm kiếm thông minh**: Tìm theo tên, nguyên liệu, tags
-- 🛒 **Danh sách mua sắm**: Tự động tạo từ công thức
-- 📅 **Kế hoạch thực đơn**: Lên lịch món ăn theo tuần/tháng
-- 📤 **Chia sẻ**: Xuất PDF, chia sẻ qua mạng xã hội
-- 🌙 **Dark mode**: Giao diện sáng/tối
-- 📱 **Offline-first**: Làm việc không cần internet
-- 🔄 **Đồng bộ**: Sync dữ liệu qua nhiều thiết bị
-- 🌍 **Đa ngôn ngữ**: Tiếng Việt, Tiếng Anh
+### 🏠 Trang chủ & Khám phá
+- **Feed động**: Xem công thức mới nhất từ cộng đồng
+- **Món ăn trong ngày**: Gợi ý công thức hot trends
+- **Đầu bếp nổi bật**: Khám phá các chef có nhiều followers
+- **Danh mục phong phú**: Dễ dàng tìm món ăn theo loại
+
+### 📖 Quản lý Công thức
+- **Tạo & Chỉnh sửa**: Thêm công thức với ảnh, nguyên liệu, và hướng dẫn chi tiết
+- **Upload ảnh**: Chụp hoặc chọn ảnh từ thư viện
+- **Công thức của tôi**: Quản lý tất cả công thức đã tạo
+- **Yêu thích**: Lưu công thức yêu thích để nấu sau
+
+### 🔍 Tìm kiếm & Lọc
+- **Tìm kiếm thông minh**: Tìm theo tên món, nguyên liệu, tag
+- **Lọc nâng cao**: Theo danh mục, độ khó, thời gian
+- **Lịch sử tìm kiếm**: Lưu các từ khóa đã tìm gần đây
+- **Gợi ý tìm kiếm**: Suggestions dựa trên lịch sử
+
+### 👤 Hồ sơ & Cộng đồng
+- **Profile cá nhân**: Hiển thị thông tin, ảnh đại diện, thống kê
+- **Theo dõi**: Follow/Unfollow đầu bếp yêu thích
+- **Đánh giá & Review**: Đánh giá công thức, để lại bình luận
+- **Xem profile người khác**: Khám phá công thức của các chef khác
+
+### 🛒 Danh sách Mua sắm
+- **Tạo danh sách**: Từ công thức hoặc tự thêm
+- **Quản lý items**: Check/uncheck, thêm, xóa
+- **Chia sẻ danh sách**: Share qua tin nhắn, email
+
+### 🔔 Thông báo
+- **Push Notifications**: Nhận thông báo realtime
+- **Nhiều loại thông báo**: 
+  - Người khác follow bạn
+  - Có người like/comment công thức
+  - Công thức mới từ chef bạn theo dõi
+- **Cài đặt thông báo**: Tùy chỉnh loại thông báo nhận
+
+### 🔐 Xác thực & Bảo mật
+- **Đăng ký/Đăng nhập**: Email/Password
+- **Google Sign In**: Đăng nhập nhanh với Google
+- **Quên mật khẩu**: Khôi phục qua email với OTP
+- **Đổi mật khẩu**: Cập nhật mật khẩu trong app
+
+### 📱 Giao diện & UX
+- **Material Design 3**: Giao diện hiện đại, mượt mà
+- **Custom Theme**: Màu sắc nhẹ nhàng, thân thiện
+- **Animations**: Hiệu ứng chuyển trang, loading đẹp mắt
+- **Bottom Navigation**: Điều hướng nhanh giữa các trang chính
 
 ## 📸 Screenshots
 
@@ -26,426 +65,125 @@
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- **Framework**: Flutter 3.24.0
-- **Language**: Dart 3.5.0
-- **State Management**: Riverpod 2.5.0
-- **Navigation**: go_router 14.0.0
-- **Local Database**: Hive 2.2.3
-- **Image Handling**: cached_network_image 3.3.1
+### Frontend (Flutter App)
 
-### Backend
-- **API**: Firebase (Auth, Firestore, Storage)
-- **Authentication**: Firebase Authentication
-- **Database**: Cloud Firestore
-- **Storage**: Firebase Storage
-- **Analytics**: Firebase Analytics
-- **Crash Reporting**: Firebase Crashlytics
+#### Framework & Language
+- **Flutter**: 3.24.0+
+- **Dart**: 3.5.0+
 
-### Key Dependencies
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  
-  # State Management
-  flutter_riverpod: ^2.5.0
-  
-  # Navigation
-  go_router: ^14.0.0
-  
-  # Local Storage
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  
-  # Firebase
-  firebase_core: ^2.24.0
-  firebase_auth: ^4.16.0
-  cloud_firestore: ^4.14.0
-  firebase_storage: ^11.6.0
-  firebase_analytics: ^10.8.0
-  
-  # Image Handling
-  image_picker: ^1.0.7
-  cached_network_image: ^3.3.1
-  
-  # UI
-  flutter_svg: ^2.0.10
-  google_fonts: ^6.1.0
-  
-  # Utilities
-  intl: ^0.19.0
-  uuid: ^4.3.3
-  share_plus: ^7.2.2
-  pdf: ^3.10.8
-```
+#### State Management
+- **Provider**: 6.1.1 - Quản lý state đơn giản, hiệu quả
+- **ValueNotifier**: Cho state cục bộ (shopping list, favorites)
+
+#### UI Components
+- **Material 3**: useMaterial3: true
+- **google_fonts**: 6.1.0 - Custom fonts (Poppins)
+- **flutter_svg**: 2.0.9 - SVG icons
+- **animated_text_kit**: 4.2.2 - Text animations
+- **google_nav_bar**: 5.0.7 - Custom bottom navigation
+- **dotted_border**: 3.1.0 - UI decorations
+
+#### Navigation
+- Native Navigator với named routes
+
+#### Firebase Integration
+- **firebase_core**: 3.8.0
+- **firebase_auth**: 5.3.3 - Authentication
+- **cloud_firestore**: 5.6.0 - Database (lưu favorites)
+- **firebase_storage**: 12.0.0 - Lưu trữ ảnh
+- **firebase_messaging**: 15.1.0 - Push notifications
+- **flutter_local_notifications**: 17.2.1 - Local notifications
+
+#### Image Handling
+- **image_picker**: 1.1.2 - Chọn/chụp ảnh
+- File system caching cho offline support
+
+#### Storage & Persistence
+- **shared_preferences**: 2.2.2 - Local storage (token, settings, onboarding)
+
+#### Authentication
+- **google_sign_in**: 6.2.1 - Google OAuth
+- JWT tokens cho API authentication
+
+#### Network & API
+- **http**: 1.1.2 - HTTP client cho REST API
+
+#### Utilities
+- **uuid**: 4.5.1 - Generate unique IDs
+- **email_validator**: 2.1.17 - Validate email format
+- **url_launcher**: 6.3.0 - Launch external URLs
+- **share_plus**: 12.0.0 - Share content
+
+### Backend (Node.js API)
+
+#### Framework & Runtime
+- **Node.js**: 18.0+
+- **Express.js**: 5.1.0 - Web framework
+
+#### Database
+- **PostgreSQL**: 14+ - Relational database
+- **Sequelize**: 6.37.7 - ORM
+- **pg**: 8.16.3 - PostgreSQL client
+- **pg-hstore**: 2.3.4 - JSON serialization
+
+#### Authentication & Security
+- **bcryptjs**: 3.0.2 - Password hashing
+- **jsonwebtoken**: 9.0.2 - JWT authentication
+- **passport**: 0.7.0 - Authentication middleware
+- **passport-google-oauth20**: 2.0.0 - Google OAuth
+- **passport-jwt**: 4.0.1 - JWT strategy
+- **helmet**: 7.1.0 - Security headers
+- **express-rate-limit**: 7.1.5 - Rate limiting
+- **cors**: 2.8.5 - CORS handling
+
+#### File Upload & Storage
+- **multer**: 1.4.5-lts.1 - File upload middleware
+- **cloudinary**: 2.7.0 - Cloud image storage & CDN
+
+#### Email & Notifications
+- **nodemailer**: 6.9.14 - Email service
+- **firebase-admin**: 12.0.0 - FCM push notifications
+
+#### Validation & Logging
+- **express-validator**: 7.0.1 - Request validation
+- **morgan**: 1.10.0 - HTTP request logger
+
+#### Development
+- **nodemon**: 3.1.10 - Auto-restart server
+- **dotenv**: 17.2.3 - Environment variables
 
 ## 📋 Yêu cầu hệ thống
 
 ### Development Environment
+
+#### Flutter Development
 - **Flutter SDK**: >= 3.24.0
 - **Dart SDK**: >= 3.5.0
-- **Android Studio** / **VS Code** với Flutter plugin
-- **Xcode** (cho iOS development trên macOS)
-- **CocoaPods** (cho iOS)
+- **Android Studio** hoặc **VS Code** với Flutter extension
+- **Xcode** 14+ (cho iOS development trên macOS)
+- **CocoaPods** (cho iOS dependencies)
+
+#### Backend Development
+- **Node.js**: >= 18.0
+- **npm** hoặc **yarn**
+- **PostgreSQL**: >= 14.0
+- **Git**: Để quản lý source code
 
 ### Minimum Platform Versions
+- **Android**: API Level 24 (Android 7.0+)
 - **iOS**: 12.0+
-- **Android**: API Level 24 (Android 7.0)+
+- **Web**: Chrome, Firefox, Safari (modern browsers)
+
+### Hardware Requirements
+- **RAM**: Tối thiểu 8GB (recommended 16GB)
+- **Storage**: 10GB free space
+- **Internet**: Cần kết nối để sync dữ liệu
 
 ## 🚀 Cài đặt và Chạy dự án
 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-username/recipe-app.git
-cd recipe-app
+git clone https://github.com/Sad3esuy/DA_App_XEMCook.git
+cd DA_App_XEMCook
 ```
-
-### 2. Cài đặt Flutter Dependencies
-
-```bash
-flutter pub get
-```
-
-### 3. Cấu hình Firebase
-
-#### 3.1. Tạo Firebase Project
-1. Truy cập [Firebase Console](https://console.firebase.google.com/)
-2. Tạo project mới hoặc chọn project có sẵn
-3. Enable các services: Authentication, Firestore, Storage
-
-#### 3.2. Cấu hình iOS
-```bash
-# Cài đặt FlutterFire CLI
-dart pub global activate flutterfire_cli
-
-# Cấu hình Firebase
-flutterfire configure
-```
-
-Hoặc thủ công:
-1. Download `GoogleService-Info.plist` từ Firebase Console
-2. Copy vào `ios/Runner/`
-3. Mở `ios/Runner.xcworkspace` bằng Xcode
-4. Add file vào project
-
-#### 3.3. Cấu hình Android
-1. Download `google-services.json` từ Firebase Console
-2. Copy vào `android/app/`
-
-### 4. Cấu hình Environment Variables
-
-Tạo file `.env` tại root project:
-
-```env
-# App Configuration
-APP_NAME=Recipe App
-APP_VERSION=1.0.0
-
-# Firebase (Optional - if not using FlutterFire)
-FIREBASE_API_KEY=your_api_key
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_STORAGE_BUCKET=your_bucket
-
-# API URLs (if using custom backend)
-API_BASE_URL=https://api.yourapp.com
-```
-
-### 5. Generate Code (Hive, Freezed, etc.)
-
-```bash
-# Generate Hive adapters
-flutter packages pub run build_runner build --delete-conflicting-outputs
-
-# Hoặc watch mode cho development
-flutter packages pub run build_runner watch
-```
-
-### 6. Chạy ứng dụng
-
-#### Chạy trên Android Emulator/Device
-```bash
-# Liệt kê devices
-flutter devices
-
-# Chạy debug mode
-flutter run
-
-# Chạy release mode
-flutter run --release
-```
-
-#### Chạy trên iOS Simulator/Device
-```bash
-# Mở simulator
-open -a Simulator
-
-# Chạy app
-flutter run
-
-# Chạy với device cụ thể
-flutter run -d "iPhone 15 Pro"
-```
-
-#### Chạy trên Web (Optional)
-```bash
-flutter run -d chrome
-```
-
-## 🏗️ Cấu trúc Project
-
-```
-recipe-app/
-├── lib/
-│   ├── main.dart                 # Entry point
-│   ├── app.dart                  # App widget chính
-│   │
-│   ├── core/                     # Core functionalities
-│   │   ├── constants/            # Constants, colors, strings
-│   │   ├── theme/                # App theme
-│   │   ├── utils/                # Utilities, helpers
-│   │   ├── router/               # Navigation routing
-│   │   └── di/                   # Dependency injection
-│   │
-│   ├── data/                     # Data layer
-│   │   ├── models/               # Data models
-│   │   ├── repositories/         # Repository implementations
-│   │   ├── datasources/          # Local & Remote datasources
-│   │   │   ├── local/            # Hive, SharedPreferences
-│   │   │   └── remote/           # Firebase, API calls
-│   │   └── dto/                  # Data transfer objects
-│   │
-│   ├── domain/                   # Business logic layer
-│   │   ├── entities/             # Business entities
-│   │   ├── repositories/         # Repository interfaces
-│   │   └── usecases/             # Business use cases
-│   │
-│   ├── presentation/             # UI layer
-│   │   ├── screens/              # App screens
-│   │   │   ├── home/
-│   │   │   ├── recipe_detail/
-│   │   │   ├── add_recipe/
-│   │   │   ├── shopping_list/
-│   │   │   ├── meal_plan/
-│   │   │   └── profile/
-│   │   ├── widgets/              # Reusable widgets
-│   │   └── providers/            # Riverpod providers
-│   │
-│   └── l10n/                     # Localization files
-│       ├── app_en.arb
-│       └── app_vi.arb
-│
-├── assets/                       # Static assets
-│   ├── images/
-│   ├── icons/
-│   └── fonts/
-│
-├── test/                         # Unit tests
-├── integration_test/             # Integration tests
-├── android/                      # Android specific code
-├── ios/                          # iOS specific code
-├── web/                          # Web specific code
-│
-├── .env                          # Environment variables
-├── pubspec.yaml                  # Dependencies
-└── README.md                     # This file
-```
-
-## 🧪 Testing
-
-### Chạy Unit Tests
-```bash
-flutter test
-```
-
-### Chạy Integration Tests
-```bash
-flutter test integration_test
-```
-
-### Test Coverage
-```bash
-# Generate coverage report
-flutter test --coverage
-
-# View coverage (requires lcov)
-genhtml coverage/lcov.info -o coverage/html
-open coverage/html/index.html
-```
-
-## 📦 Build & Deploy
-
-### Android
-
-#### Debug APK
-```bash
-flutter build apk --debug
-```
-
-#### Release APK
-```bash
-flutter build apk --release --split-per-abi
-```
-
-#### App Bundle (cho Google Play)
-```bash
-flutter build appbundle --release
-```
-
-Output: `build/app/outputs/bundle/release/app-release.aab`
-
-### iOS
-
-#### Debug Build
-```bash
-flutter build ios --debug
-```
-
-#### Release Build
-```bash
-flutter build ios --release
-```
-
-Sau đó mở Xcode để archive và upload lên App Store:
-```bash
-open ios/Runner.xcworkspace
-```
-
-### Signing Configuration
-
-#### Android
-Cấu hình trong `android/key.properties`:
-```properties
-storePassword=your_keystore_password
-keyPassword=your_key_password
-keyAlias=your_key_alias
-storeFile=/path/to/keystore.jks
-```
-
-#### iOS
-Cấu hình signing trong Xcode:
-- Open `ios/Runner.xcworkspace`
-- Select Runner target
-- Configure Signing & Capabilities
-
-## 🔧 Configuration Files
-
-### pubspec.yaml
-File cấu hình chính cho dependencies và assets
-
-### analysis_options.yaml
-Lint rules cho code quality
-```yaml
-include: package:flutter_lints/flutter.yaml
-
-linter:
-  rules:
-    - prefer_const_constructors
-    - avoid_print
-    - prefer_single_quotes
-```
-
-### firebase.json
-Cấu hình Firebase hosting (nếu deploy web)
-
-## 🐛 Troubleshooting
-
-### Pod install fails (iOS)
-```bash
-cd ios
-pod deintegrate
-pod install --repo-update
-cd ..
-flutter clean
-flutter pub get
-```
-
-### Gradle build fails (Android)
-```bash
-cd android
-./gradlew clean
-cd ..
-flutter clean
-flutter pub get
-```
-
-### Firebase không kết nối
-- Kiểm tra `google-services.json` (Android) và `GoogleService-Info.plist` (iOS)
-- Chạy lại `flutterfire configure`
-- Kiểm tra package name/bundle ID trùng khớp với Firebase
-
-### Code generation không chạy
-```bash
-flutter packages pub run build_runner clean
-flutter packages pub run build_runner build --delete-conflicting-outputs
-```
-
-## 📚 Documentation
-
-- [Flutter Documentation](https://docs.flutter.dev/)
-- [Riverpod Documentation](https://riverpod.dev/)
-- [Firebase Documentation](https://firebase.google.com/docs)
-- [Project Wiki](https://github.com/your-username/recipe-app/wiki)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-### Development Workflow
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
-
-### Code Style
-- Follow [Effective Dart](https://dart.dev/guides/language/effective-dart)
-- Run `flutter analyze` before committing
-- Format code với `flutter format .`
-
-## 📝 Changelog
-
-Xem [CHANGELOG.md](CHANGELOG.md) cho lịch sử thay đổi.
-
-## 📄 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
-
-## 👥 Authors
-
-- **Your Name** - *Initial work* - [YourGitHub](https://github.com/your-username)
-
-## 🙏 Acknowledgments
-
-- Flutter team cho framework tuyệt vời
-- Firebase cho backend services
-- Community contributors
-
-## 📞 Support
-
-- Email: support@recipeapp.com
-- Issues: [GitHub Issues](https://github.com/your-username/recipe-app/issues)
-- Discord: [Join our server](https://discord.gg/your-server)
-
-## 🗺️ Roadmap
-
-- [ ] Version 1.0 - MVP Release
-  - [x] Basic CRUD operations
-  - [x] Image upload
-  - [ ] Shopping list
-  - [ ] Meal planning
-  
-- [ ] Version 1.1 - Enhanced Features
-  - [ ] Recipe sharing
-  - [ ] Community features
-  - [ ] Advanced search
-  
-- [ ] Version 2.0 - Major Update
-  - [ ] AI recipe suggestions
-  - [ ] Nutrition tracking
-  - [ ] Voice commands
-
----
-
-Made with ❤️ using Flutter
