@@ -264,9 +264,8 @@ class _RecipesContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favoritesCount = recipes
-        .where((r) => favoriteIds.contains(r.id) || r.isFavorite)
-        .length;
+    // Count all favorites from FavoriteState, not just from my recipes
+    final favoritesCount = favoriteIds.length;
 
     return CustomScrollView(
       physics:
