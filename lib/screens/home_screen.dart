@@ -978,7 +978,7 @@ class _HomeFavoritePill extends StatelessWidget {
             ? null
             : () async {
                 try {
-                  await onPressed();
+                  await onPressed.call();
                 } catch (_) {
                   // Feedback handled upstream.
                 }
@@ -999,6 +999,8 @@ class _HomeFavoritePill extends StatelessWidget {
           ),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
+            switchInCurve: Curves.easeIn,
+            switchOutCurve: Curves.easeOut,
             child: isBusy
                 ? const SizedBox(
                     key: ValueKey('home-favorite-loading'),
@@ -1185,46 +1187,6 @@ class _RecipeChip extends StatelessWidget {
               color: foreground,
               fontWeight: FontWeight.w600,
             ),
-      ),
-    );
-  }
-}
-
-class _LikePill extends StatelessWidget {
-  const _LikePill({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-        // boxShadow: [
-        //   BoxShadow(
-        //     color: Colors.black.withValues(alpha: 0.05),
-        //     blurRadius: 10,
-        //     offset: const Offset(0, 4),
-        //   ),
-        // ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.favorite_border,
-              size: 16, color: AppTheme.primaryOrange),
-          const SizedBox(width: 6),
-          Text(
-            count.toString(),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textDark,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-        ],
       ),
     );
   }
