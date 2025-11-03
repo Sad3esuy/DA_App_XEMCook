@@ -503,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: index == recipes.length - 1 ? 0 : 16),
                 child: _FeaturedRecipeBanner(
                   recipe: recipe,
-                  label: 'Recipe of the Day',
+                  label: 'Công thức trong ngày',
                   onTap: () => _openRecipeDetail(recipe),
                   isFavorite: _favoriteIds.contains(recipe.id),
                   onToggleFavorite: () => _handleFavoriteToggle(recipe),
