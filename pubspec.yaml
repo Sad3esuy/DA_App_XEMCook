@@ -32,7 +32,7 @@ dependencies:
   url_launcher: ^6.3.0
   
   # Animation
-  animated_text_kit: ^4.2.2
+  #animated_text_kit: ^4.2.2
   #convex_bottom_bar: ^3.2.0
   #animated_bottom_navigation_bar: ^1.4.0
   google_nav_bar: ^5.0.7
