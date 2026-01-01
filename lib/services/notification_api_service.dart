@@ -54,6 +54,7 @@ class NotificationPage {
 }
 
 class NotificationApiService {
+  // static const String _baseUrl = 'https://be-da-xemcook-app.onrender.com/api/notifications';
   static const String _baseUrl = 'http://10.0.2.2:5000/api/notifications';
   static const String _tokenKey = 'auth_token';
 

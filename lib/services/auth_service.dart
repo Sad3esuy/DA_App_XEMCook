@@ -12,6 +12,29 @@ import '../model/chef_profile.dart';
 class AuthService {
   // ========== CONFIG ==========
   
+  // // Base URL của API backend
+  // static const String baseUrl = 'https://be-da-xemcook-app.onrender.com/api';
+  
+  // /// Test kết nối đến server
+  // Future<bool> testConnection() async {
+  //   try {
+  //     print('Testing connection to: $baseUrl');
+  //     // Thử kết nối đến endpoint auth để test
+  //     final response = await http.get(
+  //       Uri.parse('$_authEndpoint/test'),
+  //       headers: _getHeaders(),
+  //     ).timeout(const Duration(seconds: 30));
+      
+  //     print('Connection test response: ${response.statusCode}');
+  //     print('Connection test body: ${response.body}');
+  //     // Chấp nhận cả 200 và 404 (endpoint không tồn tại nhưng server phản hồi)
+  //     return response.statusCode == 200 || response.statusCode == 404;
+  //   } catch (e) {
+  //     print('Connection test failed: $e');
+  //     return false;
+  //   }
+  // }
+
   // Base URL của API backend
   static const String baseUrl = 'http://10.0.2.2:5000/api';
   
@@ -402,7 +425,7 @@ class AuthService {
         Uri.parse('$_authEndpoint/login'),
         headers: _getHeaders(),
         body: jsonEncode(request.toJson()),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 5)); ////30
 
       final result = _handleResponse(response);
 
