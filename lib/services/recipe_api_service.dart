@@ -6,8 +6,8 @@ import '../model/home_feed.dart';
 import '../model/collection.dart';
 
 class RecipeApiService {
+  // static const String baseUrl = "https://be-da-xemcook-app.onrender.com/api/recipes";
   static const String baseUrl = "http://10.0.2.2:5000/api/recipes";
-
   // Lấy headers có token khi cần (cùng key với AuthService)
   static const String _tokenKey = 'auth_token';
   static Future<Map<String, String>> _authHeaders() async {
