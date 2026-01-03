@@ -27,6 +27,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     super.initState();
     _service.ensureInitialized();
     _service.syncPending();
+    // Fetch latest data from server when screen opens
+    _service.refreshFromServer();
     _searchController.addListener(() => setState(() {}));
   }
 

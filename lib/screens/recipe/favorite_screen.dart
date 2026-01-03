@@ -1,5 +1,6 @@
 ﻿// import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:test_ui_app/model/user.dart';
 // import 'package:test_ui_app/services/auth_service.dart';
@@ -28,7 +29,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteState = FavoriteState.instance;
+    _favoriteState = context.read<FavoriteState>();
     _favoriteListener = () {
       if (!mounted) return;
       final favoriteIds = _favoriteState.ids;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../model/chef_profile.dart';
 import '../../model/recipe.dart';
@@ -37,7 +38,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteState = FavoriteState.instance;
+    _favoriteState = context.read<FavoriteState>();
     _favoriteListener = () {
       if (!mounted) return;
       setState(() {});
@@ -92,8 +93,33 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
     final recipeId = recipe.id;
     if (_favoriteBusy.contains(recipeId)) return;
     final nextValue = !_favoriteState.isFavorite(recipeId);
+    
+    // Helper to update local recipe list
+    void updateLocalRecipe(String id, bool isFav, {bool increment = false, bool decrement = false}) {
+      if (_profile == null) return;
+      final idx = _profile!.recipes.indexWhere((r) => r.id == id);
+      if (idx != -1) {
+        final r = _profile!.recipes[idx];
+        int newCount = r.totalRatings;
+        if (increment) newCount++;
+        if (decrement) newCount = (newCount > 0) ? newCount - 1 : 0;
+        
+        final updatedRecipes = List<Recipe>.from(_profile!.recipes);
+        updatedRecipes[idx] = r.copyWith(totalRatings: newCount, isFavorite: isFav);
+        
+        setState(() {
+          _profile = _profile!.copyWith(recipes: updatedRecipes);
+        });
+      }
+    }
+
     setState(() {
       _favoriteBusy.add(recipeId);
+      if (nextValue) {
+        updateLocalRecipe(recipeId, nextValue, increment: true);
+      } else {
+        updateLocalRecipe(recipeId, nextValue, decrement: true);
+      }
     });
     _favoriteState.setFavorite(recipeId, nextValue);
     try {
@@ -101,14 +127,29 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
       if (!mounted) return;
       setState(() {
         _favoriteBusy.remove(recipeId);
+        
+        // Correct count if server returned different status
+        if (isFavorite != nextValue) {
+           if (isFavorite) {
+             // We decremented, but it's fav -> increment
+             updateLocalRecipe(recipeId, isFavorite, increment: true);
+           } else {
+             // We incremented, but it's not -> decrement
+             updateLocalRecipe(recipeId, isFavorite, decrement: true);
+           }
+           _favoriteState.setFavorite(recipeId, isFavorite);
+        }
       });
-      if (isFavorite != nextValue) {
-        _favoriteState.setFavorite(recipeId, isFavorite);
-      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _favoriteBusy.remove(recipeId);
+        // Revert
+        if (nextValue) {
+          updateLocalRecipe(recipeId, !nextValue, decrement: true);
+        } else {
+          updateLocalRecipe(recipeId, !nextValue, increment: true);
+        }
       });
       _favoriteState.setFavorite(recipeId, !nextValue);
       ScaffoldMessenger.of(context).showSnackBar(

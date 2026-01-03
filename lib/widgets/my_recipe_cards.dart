@@ -102,8 +102,16 @@ class RecipeGridCard extends StatelessWidget {
     final theme = Theme.of(context);
     final totalTime = recipe.prepTime + recipe.cookTime;
     final tag = recipe.tags.isNotEmpty ? recipe.tags.first.trim() : '';
-    final likes =
-        recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
+    
+    // Calculate effective likes based on local favorite state discrepancy
+    int likes = recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
+    final bool effectiveFav = isFavorite ?? recipe.isFavorite;
+    
+    if (effectiveFav && !recipe.isFavorite) {
+      likes++;
+    } else if (!effectiveFav && recipe.isFavorite) {
+      likes = (likes > 0) ? likes - 1 : 0;
+    }
 
     return GestureDetector(
       onTap: onTap,

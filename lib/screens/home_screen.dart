@@ -1,4 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../model/recipe.dart';
 import '../model/home_feed.dart';
 import '../model/user.dart';
@@ -21,55 +23,65 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _authService = AuthService();
   User? _currentUser;
   bool _isLoading = true;
-  late Future<HomeFeed> _homeFeedFuture;
-  late final PageController _recipeOfTheDayController;
+  HomeFeed? _homeFeed;
+  bool _isFeedLoading = true;
+  String? _feedError;
+  
+  // Local tracking is redundant if we use Provider for ids and HomeFeed for counts
+  // But we keep _favoriteBusy to prevent double taps
+  final Set<String> _favoriteBusy = {}; 
+
+  final PageController _recipeOfTheDayController =
+      PageController(viewportFraction: 0.88);
   int _recipeOfTheDayIndex = 0;
   int _unreadNotificationCount = 0;
   late final FavoriteState _favoriteState;
   late Set<String> _favoriteIds;
   VoidCallback? _favoriteListener;
-  final Set<String> _favoriteBusy = <String>{};
 
   @override
   void initState() {
     super.initState();
-    _recipeOfTheDayController = PageController(viewportFraction: 0.88);
-    _favoriteState = FavoriteState.instance;
-    _favoriteIds = <String>{..._favoriteState.ids};
-    _favoriteListener = () {
-      final ids = _favoriteState.ids;
-      if (!mounted) return;
-      setState(() {
-        _favoriteIds
-          ..clear()
-          ..addAll(ids);
-      });
-    };
-    _favoriteState.addListener(_favoriteListener!);
-    _loadUserData();
-    _homeFeedFuture = _fetchHomeFeed();
-    _loadNotificationSummary();
-  }
-
-  Future<HomeFeed> _fetchHomeFeed() {
-    return RecipeApiService.getHomeFeed().then((feed) {
-      _favoriteState.absorbRecipes(feed.collectUniqueRecipes());
-      if (mounted) {
-        setState(() {
-          _favoriteIds
-            ..clear()
-            ..addAll(_favoriteState.ids);
-        });
-      }
-      return feed;
+    
+    // Load data after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadUserData();
+      _fetchHomeFeed();
+      _loadNotificationSummary();
     });
   }
 
+  Future<void> _fetchHomeFeed() async {
+    if (!mounted) return;
+    setState(() {
+      _isFeedLoading = true;
+      _feedError = null;
+    });
+
+    try {
+      final feed = await RecipeApiService.getHomeFeed();
+      if (!mounted) return;
+      
+      // Sync initial favorite state
+      context.read<FavoriteState>().absorbRecipes(feed.collectUniqueRecipes());
+      
+      setState(() {
+        _homeFeed = feed;
+        _isFeedLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isFeedLoading = false;
+        _feedError = e.toString();
+      });
+    }
+  }
+
   Future<void> _loadUserData() async {
-    final user = await _authService.getUser();
+    final user = await context.read<AuthService>().getUser();
     if (!mounted) return;
     setState(() {
       _currentUser = user;
@@ -89,66 +101,99 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _refreshHomeFeed() {
-    final future = _fetchHomeFeed();
-    setState(() {
-      _homeFeedFuture = future;
-      _recipeOfTheDayIndex = 0;
-    });
-    if (_recipeOfTheDayController.hasClients) {
-      _recipeOfTheDayController.jumpToPage(0);
-    }
-    _loadNotificationSummary();
-    return future;
-  }
+  // Future<void> _refreshHomeFeed() {
+  //   final future = _fetchHomeFeed();
+  //   setState(() {
+  //     _homeFeedFuture = future;
+  //     _recipeOfTheDayIndex = 0;
+  //   });
+  //   if (_recipeOfTheDayController.hasClients) {
+  //     _recipeOfTheDayController.jumpToPage(0);
+  //   }
+  //   _loadNotificationSummary();
+  //   return future;
+  // }
 
   @override
   void dispose() {
     _recipeOfTheDayController.dispose();
-    if (_favoriteListener != null) {
-      _favoriteState.removeListener(_favoriteListener!);
-    }
     super.dispose();
   }
 
   Future<void> _handleFavoriteToggle(Recipe recipe) async {
     final recipeId = recipe.id;
     if (_favoriteBusy.contains(recipeId)) return;
-    final nextValue = !_favoriteState.isFavorite(recipeId);
+    
+    final favoriteState = context.read<FavoriteState>();
+    // Determine new state based on current favorite state
+    final isCurrentlyFavorite = favoriteState.isFavorite(recipeId);
+    final nextValue = !isCurrentlyFavorite;
+    
     setState(() {
       _favoriteBusy.add(recipeId);
-      if (nextValue) {
-        _favoriteIds.add(recipeId);
-      } else {
-        _favoriteIds.remove(recipeId);
+      
+      // OPTIMISTIC UPDATE FOR COUNT
+      // Update local HomeFeed state to reflect the change in count immediately
+      if (_homeFeed != null) {
+        _homeFeed = _homeFeed!.updateRecipe(recipeId, (r) {
+           int newCount = r.totalRatings;
+           if (nextValue) {
+             newCount++;
+           } else {
+             newCount = (newCount > 0) ? newCount - 1 : 0;
+           }
+           return r.copyWith(totalRatings: newCount, isFavorite: nextValue);
+        });
       }
     });
-    _favoriteState.setFavorite(recipeId, nextValue);
+
+    // Optimistic update for global favorite state (icon color)
+    favoriteState.setFavorite(recipeId, nextValue);
+    
     try {
-      final isFavorite = await _favoriteState.toggleFavorite(recipeId);
+      final isFavorite = await favoriteState.toggleFavorite(recipeId);
       if (!mounted) return;
+      
       setState(() {
         _favoriteBusy.remove(recipeId);
-        if (isFavorite) {
-          _favoriteIds.add(recipeId);
-        } else {
-          _favoriteIds.remove(recipeId);
+        
+        // Correct count if server returned different favorite status
+        if (isFavorite != nextValue && _homeFeed != null) {
+           _homeFeed = _homeFeed!.updateRecipe(recipeId, (r) {
+             // Revert or adjust based on actual server result if needed
+             // Simplest is to strict set based on isFavorite
+             int newCount = r.totalRatings; 
+             // If we thought it was true (added 1) but it's false, subtract 1
+             if (nextValue && !isFavorite) newCount--;
+             // If we thought it was false (sub 1) but it's true, add 1
+             if (!nextValue && isFavorite) newCount++;
+             
+             return r.copyWith(totalRatings: newCount, isFavorite: isFavorite);
+           });
         }
       });
+      
       if (isFavorite != nextValue) {
-        _favoriteState.setFavorite(recipeId, isFavorite);
+        favoriteState.setFavorite(recipeId, isFavorite);
       }
     } catch (e) {
       if (!mounted) return;
+       // Revert optimistic updates
       setState(() {
         _favoriteBusy.remove(recipeId);
-        if (nextValue) {
-          _favoriteIds.remove(recipeId);
-        } else {
-          _favoriteIds.add(recipeId);
-        }
+         if (_homeFeed != null) {
+            _homeFeed = _homeFeed!.updateRecipe(recipeId, (r) {
+               int newCount = r.totalRatings;
+               if (nextValue) {
+                 newCount--; // was added, so remove
+               } else {
+                 newCount++; // was removed, so add
+               }
+               return r.copyWith(totalRatings: newCount, isFavorite: !nextValue);
+            });
+         }
       });
-      _favoriteState.setFavorite(recipeId, !nextValue);
+      favoriteState.setFavorite(recipeId, !nextValue); 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Không thể cập nhật yêu thích: $e')),
       );
@@ -181,29 +226,28 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
           );
           if (created == true && mounted) {
-            await _refreshHomeFeed();
+            await _fetchHomeFeed();
           }
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: SafeArea(
-        child: FutureBuilder<HomeFeed>(
-          future: _homeFeedFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        child: Builder(
+          builder: (context) {
+            if (_isFeedLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (snapshot.hasError) {
-              return _ErrorState(
-                message: snapshot.error.toString(),
-                onRetry: _refreshHomeFeed,
+            if (_feedError != null) {
+               return _ErrorState(
+                message: _feedError!,
+                onRetry: _fetchHomeFeed,
               );
             }
 
-            final feed = snapshot.data;
+            final feed = _homeFeed;
             if (feed == null) {
-              return _EmptyState(onCreate: _openCreateRecipe);
+               return _EmptyState(onCreate: _openCreateRecipe);
             }
 
             final allRecipes = feed.collectUniqueRecipes();
@@ -219,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return RefreshIndicator(
               color: AppTheme.primaryOrange,
-              onRefresh: _refreshHomeFeed,
+              onRefresh: _fetchHomeFeed,
               child: ListView(
                 physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics()),
@@ -229,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 24),
                   if (feed.recipeOfTheDay.hasRecipes) ...[
                     _buildRecipeOfTheDayCarousel(feed.recipeOfTheDay),
-                    const SizedBox(height: 32),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04), // Responsive spacing
                   ],
                   if (topRated.isNotEmpty) ...[
                     _SectionHeader(
@@ -243,11 +287,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: topRated,
                       onRecipeTap: _openRecipeDetail,
-                      favoriteIds: _favoriteIds,
+                      favoriteIds: context.watch<FavoriteState>().ids,
                       onToggleFavorite: _handleFavoriteToggle,
                       favoriteBusy: _favoriteBusy,
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
                   ],
                   if (mostViewed.isNotEmpty) ...[
                     _SectionHeader(
@@ -264,11 +308,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: mostViewed,
                       onRecipeTap: _openRecipeDetail,
-                      favoriteIds: _favoriteIds,
+                      favoriteIds: context.watch<FavoriteState>().ids,
                       onToggleFavorite: _handleFavoriteToggle,
                       favoriteBusy: _favoriteBusy,
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
                   ],
                   if (quickMeals.isNotEmpty) ...[
                     _SectionHeader(
@@ -287,11 +331,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: quickMeals,
                       onRecipeTap: _openRecipeDetail,
-                      favoriteIds: _favoriteIds,
+                      favoriteIds: context.watch<FavoriteState>().ids,
                       onToggleFavorite: _handleFavoriteToggle,
                       favoriteBusy: _favoriteBusy,
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
                   ],
                   if (feed.seasonal.hasRecipes &&
                       seasonalRecipes.isNotEmpty) ...[
@@ -322,11 +366,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     _LatestRecipesStrip(
                       recipes: seasonalRecipes,
                       onRecipeTap: _openRecipeDetail,
-                      favoriteIds: _favoriteIds,
+                      favoriteIds: context.watch<FavoriteState>().ids,
                       onToggleFavorite: _handleFavoriteToggle,
                       favoriteBusy: _favoriteBusy,
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
                   ],
                   if (creators.isNotEmpty) ...[
                     Text(
@@ -349,6 +393,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  
+  // Helper for refresh indicator
+  Future<void> _refreshHomeFeed() => _fetchHomeFeed();
 
   void _openCollection(RecipeCollectionConfig config) {
     Navigator.of(context, rootNavigator: true).push(
@@ -488,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         const SizedBox(height: 16),
         SizedBox(
-          height: 320,
+          height: MediaQuery.of(context).size.height * 0.4, // Responsive height
           child: PageView.builder(
             controller: _recipeOfTheDayController,
             clipBehavior: Clip.none,
@@ -505,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   recipe: recipe,
                   label: 'Công thức trong ngày',
                   onTap: () => _openRecipeDetail(recipe),
-                  isFavorite: _favoriteIds.contains(recipe.id),
+                  isFavorite: context.watch<FavoriteState>().isFavorite(recipe.id),
                   onToggleFavorite: () => _handleFavoriteToggle(recipe),
                   isFavoriteBusy: _favoriteBusy.contains(recipe.id),
                 ),
@@ -590,8 +637,12 @@ class _FeaturedRecipeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final authorName =
         (recipe.authorName ?? '').isEmpty ? 'Đầu bếp ẩn danh' : recipe.authorName!;
-    final likes =
-        recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
+    int likes = recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
+    if (isFavorite && !recipe.isFavorite) {
+      likes++;
+    } else if (!isFavorite && recipe.isFavorite) {
+      likes = (likes > 0) ? likes - 1 : 0;
+    }
 
     return GestureDetector(
       onTap: onTap,
@@ -609,10 +660,13 @@ class _FeaturedRecipeBanner extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     if (recipe.imageUrl.isNotEmpty)
-                      Image.network(
-                        recipe.imageUrl,
+                      CachedNetworkImage(
+                        imageUrl: recipe.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const _ImageFallback(),
+                        placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        errorWidget: (context, url, error) =>
+                            const _ImageFallback(),
                       )
                     else
                       const _ImageFallback(),
@@ -734,7 +788,7 @@ class _LatestRecipesStrip extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 300,
+      height: MediaQuery.of(context).size.height * 0.35, // Responsive height
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -774,8 +828,12 @@ class _LatestRecipeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalTime = recipe.prepTime + recipe.cookTime;
-    final likes =
-        recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
+    int likes = recipe.totalRatings > 0 ? recipe.totalRatings : recipe.ratings.length;
+    if (isFavorite && !recipe.isFavorite) {
+      likes++;
+    } else if (!isFavorite && recipe.isFavorite) {
+      likes = (likes > 0) ? likes - 1 : 0;
+    }
 
     final chips = <_RecipeChip>[];
     void addChip(_RecipeChip chip) {
@@ -827,7 +885,8 @@ class _LatestRecipeCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 220,
+        width: MediaQuery.of(context).size.width * 0.6, // Responsive width
+        constraints: const BoxConstraints(maxWidth: 260, minWidth: 200),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -852,12 +911,13 @@ class _LatestRecipeCard extends StatelessWidget {
                       decoration:
                           const BoxDecoration(color: AppTheme.secondaryYellow),
                       child: recipe.imageUrl.isNotEmpty
-                          ? Image.network(
-                              recipe.imageUrl,
+                          ? CachedNetworkImage(
+                              imageUrl: recipe.imageUrl,
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              errorBuilder: (_, __, ___) =>
+                              placeholder: (context, url) => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                              errorWidget: (_, __, ___) =>
                                   const _ImageFallback(),
                             )
                           : const _ImageFallback(),

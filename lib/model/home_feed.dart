@@ -81,6 +81,32 @@ class HomeFeed {
       return DateTime.fromMillisecondsSinceEpoch(0);
     }
   }
+
+  HomeFeed updateRecipe(String id, Recipe Function(Recipe) updater) {
+    List<Recipe> updateList(List<Recipe> list) {
+      return list.map((r) => r.id == id ? updater(r) : r).toList();
+    }
+
+    final newSeasonalRecipes = updateList(seasonal.recipes);
+    final newRecipeOfDayRecipes = updateList(recipeOfTheDay.recipes);
+
+    return HomeFeed(
+      topRated: updateList(topRated),
+      mostViewed: updateList(mostViewed),
+      quickMeals: updateList(quickMeals),
+      seasonal: SeasonalSection(
+        key: seasonal.key,
+        label: seasonal.label,
+        tags: seasonal.tags,
+        recipes: newSeasonalRecipes,
+      ),
+      recipeOfTheDay: RecipeOfDaySection(
+        date: recipeOfTheDay.date,
+        seed: recipeOfTheDay.seed,
+        recipes: newRecipeOfDayRecipes,
+      ),
+    );
+  }
 }
 
 class SeasonalSection {

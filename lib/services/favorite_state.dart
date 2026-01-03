@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -7,15 +8,38 @@ import 'recipe_api_service.dart';
 
 /// Singleton to keep recipe favorite states in sync across screens.
 class FavoriteState extends ChangeNotifier {
-  FavoriteState._internal();
-
-  static final FavoriteState instance = FavoriteState._internal();
+  FavoriteState() {
+    _loadFromStorage();
+  }
 
   final Set<String> _favoriteIds = <String>{};
+  static const String _storageKey = 'favorite_recipe_ids';
 
   UnmodifiableSetView<String> get ids => UnmodifiableSetView(_favoriteIds);
 
   bool isFavorite(String recipeId) => _favoriteIds.contains(recipeId);
+
+  Future<void> _loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? stored = prefs.getStringList(_storageKey);
+      if (stored != null) {
+        _favoriteIds.addAll(stored);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading favorites: $e');
+    }
+  }
+
+  Future<void> _saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_storageKey, _favoriteIds.toList());
+    } catch (e) {
+      debugPrint('Error saving favorites: $e');
+    }
+  }
 
   /// Apply favorite hints from API recipe payloads without removing existing
   /// states, because some endpoints might omit the favorite flag.
@@ -27,6 +51,7 @@ class FavoriteState extends ChangeNotifier {
       }
     }
     if (changed) {
+      _saveToStorage();
       notifyListeners();
     }
   }
@@ -38,6 +63,7 @@ class FavoriteState extends ChangeNotifier {
       _favoriteIds
         ..clear()
         ..addAll(newSet);
+      _saveToStorage();
       notifyListeners();
     }
   }
@@ -49,6 +75,7 @@ class FavoriteState extends ChangeNotifier {
         ? _favoriteIds.add(recipeId)
         : _favoriteIds.remove(recipeId);
     if (changed) {
+      _saveToStorage();
       notifyListeners();
     }
     return isFavorite;
@@ -60,6 +87,7 @@ class FavoriteState extends ChangeNotifier {
         ? _favoriteIds.add(recipeId)
         : _favoriteIds.remove(recipeId);
     if (changed) {
+      _saveToStorage();
       notifyListeners();
     }
   }
