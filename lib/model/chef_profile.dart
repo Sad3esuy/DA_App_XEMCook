@@ -32,4 +32,17 @@ class ChefProfile {
       collections: collectionsJson.map(Collection.fromJson).toList(),
     );
   }
+  ChefProfile copyWith({
+    User? user,
+    UserStats? stats,
+    List<Recipe>? recipes,
+    List<Collection>? collections,
+  }) {
+    return ChefProfile(
+      user: user ?? this.user,
+      stats: stats ?? this.stats,
+      recipes: recipes ?? this.recipes,
+      collections: collections ?? this.collections,
+    );
+  }
 }

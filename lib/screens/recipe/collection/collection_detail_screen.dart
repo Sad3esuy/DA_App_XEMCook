@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:test_ui_app/model/collection.dart';
 import 'package:test_ui_app/services/favorite_state.dart';
 import 'package:test_ui_app/services/recipe_api_service.dart';
@@ -38,7 +39,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteState = FavoriteState.instance;
+    _favoriteState = context.read<FavoriteState>();
     _favoriteIds.addAll(_favoriteState.ids);
     _favoriteListener = () {
       if (!mounted) return;

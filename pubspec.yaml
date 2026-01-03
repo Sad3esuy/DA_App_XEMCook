@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.9
+  cached_network_image: ^3.4.1
   
   # State Management
   provider: ^6.1.1

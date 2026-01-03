@@ -10,6 +10,10 @@ import 'screens/main_shell.dart';
 import 'screens/auth/welcome_screen.dart';
 import 'services/push_notification_service.dart';
 
+import 'package:provider/provider.dart';
+import 'services/auth_service.dart';
+import 'services/favorite_state.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -25,7 +29,19 @@ void main() async {
     ),
   );
 
-  runApp(const XEMCookApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<AuthService>(
+          create: (_) => AuthService(),
+        ),
+        ChangeNotifierProvider<FavoriteState>(
+          create: (_) => FavoriteState(),
+        ),
+      ],
+      child: const XEMCookApp(),
+    ),
+  );
 }
 
 Future<void> _initializeFirebase() async {

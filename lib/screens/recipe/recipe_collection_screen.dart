@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../model/recipe.dart';
 import '../../services/favorite_state.dart';
 import '../../services/recipe_api_service.dart';
@@ -189,7 +190,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteState = FavoriteState.instance;
+    _favoriteState = context.read<FavoriteState>();
     _favoriteIds.addAll(_favoriteState.ids);
     _favoriteListener = () {
       if (!mounted) return;
@@ -971,12 +972,27 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
     final recipeId = recipe.id;
     if (_favoriteLoading.contains(recipeId)) return;
     final nextValue = !_favoriteState.isFavorite(recipeId);
+    
+    // Helper to update local recipe list
+    void updateLocalRecipe(String id, bool isFav, {bool increment = false, bool decrement = false}) {
+      final index = _recipes.indexWhere((r) => r.id == id);
+      if (index != -1) {
+        final r = _recipes[index];
+        int newCount = r.totalRatings;
+        if (increment) newCount++;
+        if (decrement) newCount = (newCount > 0) ? newCount - 1 : 0;
+        _recipes[index] = r.copyWith(totalRatings: newCount, isFavorite: isFav);
+      }
+    }
+
     setState(() {
       _favoriteLoading.add(recipeId);
       if (nextValue) {
         _favoriteIds.add(recipeId);
+        updateLocalRecipe(recipeId, nextValue, increment: true);
       } else {
         _favoriteIds.remove(recipeId);
+        updateLocalRecipe(recipeId, nextValue, decrement: true);
       }
     });
     _favoriteState.setFavorite(recipeId, nextValue);
@@ -991,23 +1007,42 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
         } else {
           _favoriteIds.remove(recipeId);
         }
+        
+        // Correct count if server returned different status
+        if (isFavorite != nextValue) {
+           if (isFavorite) {
+             // We tried to remove (decrement), but it's actually fav (should be +1 from original)
+             // Current state is decrement. We need to +1 to restore original, then +1 to increment? 
+             // No, simple logic:
+             // If nextValue was false (we decremented), but isFavorite is true:
+             // We need to add back 1 (restore)
+             updateLocalRecipe(recipeId, isFavorite, increment: true);
+           } else {
+             // We tried to add (increment), but it's actually not fav
+             // We need to subtract 1 (restore)
+             updateLocalRecipe(recipeId, isFavorite, decrement: true);
+           }
+           _favoriteState.setFavorite(recipeId, isFavorite);
+        }
       });
-      if (isFavorite != nextValue) {
-        _favoriteState.setFavorite(recipeId, isFavorite);
-      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _favoriteLoading.remove(recipeId);
+        // Revert everything
         if (nextValue) {
+          // We added/incremented, so remove/decrement
           _favoriteIds.remove(recipeId);
+          updateLocalRecipe(recipeId, !nextValue, decrement: true);
         } else {
+          // We removed/decremented, so add/increment
           _favoriteIds.add(recipeId);
+          updateLocalRecipe(recipeId, !nextValue, increment: true);
         }
       });
       _favoriteState.setFavorite(recipeId, !nextValue);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Khong the cap nhat yeu thich: $error')),
+        SnackBar(content: Text('Không thể cập nhật yêu thích: $error')),
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:test_ui_app/model/instruction.dart';
 import 'package:test_ui_app/model/ingredient.dart';
 import 'package:test_ui_app/model/recipe.dart';
@@ -78,7 +79,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _favoriteState = FavoriteState.instance;
+    _favoriteState = context.read<FavoriteState>();
     _favorite = _favoriteState.isFavorite(widget.recipeId);
     _favoriteListener = () {
       if (!mounted) return;
@@ -506,7 +507,13 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             }
             _favoriteState.setFavorite(recipe.id, resolvedFavorite);
             _avg = recipe.avgRating;
-            _total = recipe.totalRatings;
+            int displayTotal = recipe.totalRatings;
+            if (_favorite && !recipe.isFavorite) {
+               displayTotal++;
+            } else if (!_favorite && recipe.isFavorite) {
+               displayTotal = (displayTotal > 0) ? displayTotal - 1 : 0;
+            }
+            _total = displayTotal;
 
             final totalTime = recipe.prepTime + recipe.cookTime;
             final difficultyColor = _difficultyColor(recipe.difficulty);
@@ -553,37 +560,36 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       onPressed: _busy
                           ? null
                           : () async {
-                              final nextValue = !_favorite;
-                              setState(() {
-                                _busy = true;
-                                _favorite = nextValue;
-                              });
-                              _favoriteState.setFavorite(recipe.id, nextValue);
-                              try {
-                                final isFav = await _favoriteState
-                                    .toggleFavorite(recipe.id);
-                                if (!mounted) return;
+                                final nextValue = !_favorite;
                                 setState(() {
-                                  _favorite = isFav;
-                                  _busy = false;
+                                  _busy = true;
+                                  _favorite = nextValue;
                                 });
-                                if (isFav != nextValue) {
+                                _favoriteState.setFavorite(recipe.id, nextValue);
+                                try {
+                                  final isFav = await _favoriteState
+                                      .toggleFavorite(recipe.id);
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _favorite = isFav;
+                                    _busy = false;
+                                  });
+                                  if (isFav != nextValue) {
+                                     _favoriteState.setFavorite(recipe.id, isFav);
+                                  }
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _busy = false;
+                                    _favorite = !nextValue;
+                                  });
                                   _favoriteState.setFavorite(
-                                      recipe.id, isFav);
+                                      recipe.id, !nextValue);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Lỗi: $e')),
+                                  );
                                 }
-                              } catch (e) {
-                                if (!mounted) return;
-                                setState(() {
-                                  _favorite = !nextValue;
-                                  _busy = false;
-                                });
-                                _favoriteState.setFavorite(
-                                    recipe.id, !nextValue);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Lỗi: $e')),
-                                );
-                              }
-                            },
+                              },
                     ),
                     if (canManage)
                       Container(
