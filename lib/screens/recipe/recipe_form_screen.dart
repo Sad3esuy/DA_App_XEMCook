@@ -1513,7 +1513,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       width: double.infinity,
-      height: 56,
+      height: 62,
       decoration: BoxDecoration(
         color: AppTheme.primaryOrange,
         borderRadius: BorderRadius.circular(14),

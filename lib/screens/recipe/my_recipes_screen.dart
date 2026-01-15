@@ -539,7 +539,7 @@ class _CreateCollectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
-          height: 100,
+          height: 110,
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

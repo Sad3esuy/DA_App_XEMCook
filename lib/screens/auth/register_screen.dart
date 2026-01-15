@@ -317,7 +317,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 // Nút đăng ký
                 SizedBox(
-                  height: 56,
+                  height: 62,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleRegister,
                     child: _isLoading
@@ -329,7 +329,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text('Đăng ký'),
+                        : const Text('Đăng ký',style: TextStyle(
+                            fontSize: 16,
+                          ),),
                   ),
                 ),
 

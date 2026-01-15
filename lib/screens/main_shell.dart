@@ -152,7 +152,7 @@ class _MainShellState extends State<MainShell> {
                         icon: _icons[index],
                         text: _labels[index],
                         textStyle: const TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primaryOrange,
                         ),

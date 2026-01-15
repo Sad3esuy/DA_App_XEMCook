@@ -316,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   if (quickMeals.isNotEmpty) ...[
                     _SectionHeader(
-                      title: 'Món nhanh - 20 phút',
+                      title: 'Món nhanh gọn',
                       actionLabel: 'Xem tất cả',
                       onActionTap: () => _openCollection(
                         const RecipeCollectionConfig(
@@ -1103,7 +1103,7 @@ class _CreatorStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 110,
+      height: 120,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),

@@ -31,14 +31,14 @@ class CollectionSummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
-          height: 100,
+          height: 110,
           padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -65,7 +65,8 @@ class CollectionSummaryCard extends StatelessWidget {
                       subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.black54,
-                        fontSize: 13,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -124,7 +125,7 @@ class RecipeGridCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 180,
+              height: 165,
               child: Stack(
                 children: [
                   ClipRRect(
@@ -179,14 +180,16 @@ class RecipeGridCard extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              child: Text(
-                recipe.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+            Expanded( // Thêm Expanded ở đây
+              child:Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Text(
+                  recipe.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),

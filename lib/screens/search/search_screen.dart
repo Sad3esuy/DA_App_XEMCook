@@ -607,9 +607,15 @@ class _CategoryCard extends StatelessWidget {
                 child: Icon(category.icon, color: AppTheme.primaryOrange),
               ),
               const SizedBox(height: 10),
-              Text(
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
                 category.label,
                 textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,                 
+                ),
+              ),
               ),
             ],
           ),

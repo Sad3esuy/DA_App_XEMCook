@@ -220,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 // Nút đăng nhập
                 SizedBox(
-                  height: 56,
+                  height: 62,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     child: _isLoading
@@ -232,7 +232,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text('Đăng nhập'),
+                        : const Text('Đăng nhập', style: TextStyle(
+                            fontSize: 16,
+                          ),),
                   ),
                 ),
 
