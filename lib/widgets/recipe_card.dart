@@ -47,7 +47,7 @@ class RecipeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 160,
+              height: 165,
               child: Stack(
                 children: [
                   ClipRRect(
@@ -105,10 +105,11 @@ class RecipeCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
-                    const Spacer(),
+                    const Spacer(flex: 2),
                     Row(
                       children: [
                         CircleAvatar(
@@ -137,6 +138,7 @@ class RecipeCard extends StatelessWidget {
                                 .bodyMedium
                                 ?.copyWith(
                                   color: const Color.fromARGB(255, 239, 10, 10),
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),

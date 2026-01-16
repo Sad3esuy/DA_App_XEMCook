@@ -549,7 +549,7 @@ class _RecipeCollectionScreenState extends State<RecipeCollectionScreen> {
                   child: SafeArea(
                     child: SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: 62,
                       child: ElevatedButton(
                         onPressed: () {
                           setState(() {

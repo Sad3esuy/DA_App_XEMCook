@@ -165,7 +165,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 32.0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 62,
                   child: ElevatedButton(
                     onPressed: () async {
                       if (_currentPage < _slides.length - 1) {
@@ -207,7 +207,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               ? 'Tiếp tục' 
                               : 'Khám phá ngay',
                           style: const TextStyle(
-                            fontSize: 17,
+                            fontSize: 18,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.3,
                           ),

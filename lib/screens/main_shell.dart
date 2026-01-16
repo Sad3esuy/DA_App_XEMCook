@@ -138,9 +138,9 @@ class _MainShellState extends State<MainShell> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 15.0, vertical: 12),
                   child: GNav(
-                    gap: 8,
+                    gap: 6,
                     activeColor: AppTheme.primaryOrange,
-                    iconSize: 26,
+                    iconSize: 24,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 12),
                     duration: const Duration(milliseconds: 300),
@@ -152,7 +152,7 @@ class _MainShellState extends State<MainShell> {
                         icon: _icons[index],
                         text: _labels[index],
                         textStyle: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primaryOrange,
                         ),

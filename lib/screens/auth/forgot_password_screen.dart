@@ -167,7 +167,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 24),
                   
                   SizedBox(
-                    height: 56,
+                    height: 62,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _sendResetEmail,
                       child: _isLoading
@@ -179,7 +179,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text('Gửi email đặt lại mật khẩu'),
+                          : const Text('Gửi email đặt lại mật khẩu',style: TextStyle(
+                            fontSize: 16,
+                          ),),
                     ),
                   ),
                 ] else ...[
@@ -242,7 +244,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   
                   // Back to login
                   SizedBox(
-                    height: 56,
+                    height: 62,
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.of(context).pushAndRemoveUntil(
@@ -250,7 +252,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           (route) => false,
                         );
                       },
-                      child: const Text('Quay lại đăng nhập'),
+                      child: const Text('Quay lại đăng nhập', style: TextStyle(fontSize: 16),),
                     ),
                   ),
                 ],

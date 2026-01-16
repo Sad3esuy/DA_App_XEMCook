@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
+                        horizontal: 14, vertical: 12),
                   ),
                   child: const Text('Đăng xuất'),
                 ),
@@ -699,7 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 24),
                           //logout button
                           SizedBox(
-                            height: 60,
+                            height: 62,
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: _busy ? null : _signOut,

@@ -41,6 +41,20 @@ class FavoriteState extends ChangeNotifier {
     }
   }
 
+  /// Sync favorite IDs from the server to ensure local state is accurate.
+  Future<void> syncWithServer() async {
+    try {
+      final favorites = await RecipeApiService.getFavorites(limit: 1000);
+      final favoriteIds = favorites.map((r) => r.id).toSet();
+      _favoriteIds.clear();
+      _favoriteIds.addAll(favoriteIds);
+      _saveToStorage();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error syncing favorites: $e');
+    }
+  }
+
   /// Apply favorite hints from API recipe payloads without removing existing
   /// states, because some endpoints might omit the favorite flag.
   void absorbRecipes(Iterable<Recipe> recipes) {
