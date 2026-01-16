@@ -244,7 +244,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   
                   // Back to login
                   SizedBox(
-                    height: 56,
+                    height: 62,
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.of(context).pushAndRemoveUntil(
@@ -252,7 +252,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           (route) => false,
                         );
                       },
-                      child: const Text('Quay lại đăng nhập'),
+                      child: const Text('Quay lại đăng nhập', style: TextStyle(fontSize: 16),),
                     ),
                   ),
                 ],

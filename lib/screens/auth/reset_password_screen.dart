@@ -112,7 +112,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
-                  height: 56,
+                  height: 62,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _resetPassword,
                     child: _isLoading
@@ -121,7 +121,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             width: 24,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
-                        : const Text('Đổi mật khẩu'),
+                        : const Text('Đổi mật khẩu', style: TextStyle(fontSize: 16),),
                   ),
                 ),
               ],

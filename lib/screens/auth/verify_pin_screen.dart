@@ -93,7 +93,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
-                  height: 56,
+                  height: 62,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _verifyPin,
                     child: _isLoading
@@ -105,7 +105,7 @@ class _VerifyPinScreenState extends State<VerifyPinScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text('Xác minh mã PIN'),
+                        : const Text('Xác minh mã PIN', style: TextStyle(fontSize: 16),),
                   ),
                 ),
               ],

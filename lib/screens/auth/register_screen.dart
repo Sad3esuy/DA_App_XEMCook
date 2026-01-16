@@ -131,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           child: Form(
             key: _formKey,
             child: Column(
@@ -381,7 +381,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
                 
                 // Đã có tài khoản
                 Row(

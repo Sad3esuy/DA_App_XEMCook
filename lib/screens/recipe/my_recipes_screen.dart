@@ -63,6 +63,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
       final results = await Future.wait([
         RecipeApiService.getMyRecipes(),
         RecipeApiService.getMyCollections(limit: 100),
+        _favoriteState.syncWithServer(),
       ]);
 
       if (!mounted) return;
@@ -74,7 +75,6 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
         _isLoadingCollections = false;
         _error = null;
       });
-      _favoriteState.absorbRecipes(_recipes);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -321,19 +321,20 @@ class _RecipesContent extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: Column(
               children: [
-                // Favorites Collection (always shown)
+                // TopRow: My Recipes & Favorites
                 Row(
                   children: [
                     Expanded(
                       child: CollectionSummaryCard(
                         title: 'Yêu thích',
                         subtitle: '$favoritesCount công thức',
-                        backgroundColor: const Color(0xD0DDF0E8),
+                        backgroundColor: const Color(0xFFE8F5E9),
                         icon: Icons.favorite_rounded,
                         iconColor: AppTheme.primaryOrange,
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const FavoritesScreen()),
                           );
                         },
                       ),
